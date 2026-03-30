@@ -1,40 +1,49 @@
 """
 kpi_engine.py
 Amazon Sales — KPI Engine
-Rebuilt for actual schema:
-  order_id, order_date, status, fulfillment, sales_channel,
-  ship_city, ship_state, ship_country, category, quantity, amount, b2b_flag
+Schema confirmed from Amazon Sale Report.csv headers:
+  index, Order ID, Date, Status, Fulfilment, Sales Channel,
+  ship-service-level, Style, SKU, Category, Size, ASIN,
+  Courier Status, Qty, currency, Amount, ship-city, ship-state
 
 Run standalone:
-    python kpi_engine.py your_sales.csv
+    python kpi_engine.py "Amazon Sale Report.csv"
 """
 
 import pandas as pd
 from pathlib import Path
 
-# ── Column mapping: right side = your actual CSV headers ──────────────────────
-# Change the VALUES to match your CSV exactly (case-sensitive).
+# ── Column mapping: right side = EXACT headers from your CSV ─────────────────
 COLUMN_MAP = {
     "order_id":      "Order ID",
     "order_date":    "Date",
     "status":        "Status",
-    "fulfillment":   "Fulfilment",       # Amazon / Merchant
-    "sales_channel": "Sales Channel",
+    "fulfillment":   "Fulfilment",        # Amazon / Merchant
+    "sales_channel": "Sales Channel",     # note: CSV has trailing space — stripped below
+    "ship_service":  "ship-service-level",
+    "style":         "Style",
+    "sku":           "SKU",
+    "category":      "Category",
+    "size":          "Size",
+    "asin":          "ASIN",
+    "courier_status":"Courier Status",
+    "quantity":      "Qty",
+    "currency":      "currency",
+    "amount":        "Amount",
     "ship_city":     "ship-city",
     "ship_state":    "ship-state",
-    "ship_country":  "ship-country",
-    "category":      "Category",
-    "quantity":      "Qty",
-    "amount":        "Amount",
-    "b2b_flag":      "B2B",
 }
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Exact status values from your data (note the spaces around dash)
 FULFILLED_STATUSES = {"Shipped", "Shipped - Delivered to Buyer"}
 
 
 def load_data(csv_path: str) -> pd.DataFrame:
     df = pd.read_csv(csv_path)
+
+    # Strip trailing/leading spaces from ALL column headers (fixes "Sales Channel ")
+    df.columns = df.columns.str.strip()
 
     # Rename to internal names
     reverse_map = {v: k for k, v in COLUMN_MAP.items()}
@@ -45,20 +54,20 @@ def load_data(csv_path: str) -> pd.DataFrame:
     df["ship_state"] = df["ship_state"].astype(str).str.upper().str.strip()
     df["ship_city"]  = df["ship_city"].astype(str).str.upper().str.strip()
     df["category"]   = df["category"].astype(str).str.strip()
+    df["status"]     = df["status"].astype(str).str.strip()
 
-    # Parse dates
-    df["order_date"] = pd.to_datetime(df["order_date"], dayfirst=True, errors="coerce")
+    # Parse dates — your format is MM-DD-YY (e.g. 04-30-22)
+    df["order_date"] = pd.to_datetime(df["order_date"], format="%m-%d-%y", errors="coerce")
     df["year_month"] = df["order_date"].dt.to_period("M").astype(str)
 
-    # Fulfillment flag
+    # Fulfillment flag — checks both "Shipped" and "Shipped - Delivered to Buyer"
     df["is_fulfilled"] = df["status"].isin(FULFILLED_STATUSES).astype(int)
 
-    # B2B flag
-    df["is_b2b"] = df["b2b_flag"].astype(str).str.upper().str.strip().isin(
-        {"TRUE", "1", "YES", "B2B"}
-    ).astype(int)
+    # B2B flag — your CSV doesn't have a B2B column, default all to B2C (0)
+    df["is_b2b"] = 0
 
     # Drop invalid amounts
+    df["amount"] = pd.to_numeric(df["amount"], errors="coerce")
     df = df[df["amount"].notna() & (df["amount"] > 0)].copy()
 
     return df
