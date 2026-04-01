@@ -1,0 +1,6 @@
+pandas
+matplotlib
+flask
+plotly
+schedule
+python-dotenv
