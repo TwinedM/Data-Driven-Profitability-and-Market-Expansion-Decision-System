@@ -2,7 +2,7 @@
 .env
 
 # No need to ship CSV data — it'll be uploaded at runtime
-data/
+
 
 # Generated outputs don't belong in the image
 outputs/
