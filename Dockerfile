@@ -5,7 +5,8 @@
 FROM python:3.11-slim
 
 # ── Layer 2: Working directory ────────────────────────────────
-# All subsequent commands run from /app inside the container.
+# All subsequent commands run from /app inside the contain
+er.
 # This is like doing "mkdir /app && cd /app".
 WORKDIR /app
 
@@ -43,3 +44,5 @@ EXPOSE 5000
 # Without this, the app listens only on localhost INSIDE the container
 # and is unreachable from outside.
 CMD ["python", "app/dashboard.py"]
+
+COPY "Amazon Sale Report.csv" ./
