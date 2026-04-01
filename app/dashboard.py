@@ -226,7 +226,7 @@ def index():
 
 
 if __name__ == "__main__":
-    CSV_PATH = sys.argv[1] if len(sys.argv) > 1 else "app/data/Amazon Sale Report.csv"
+CSV_PATH = sys.argv[1] if len(sys.argv) > 1 else "Amazon Sale Report.csv"
     print(f"[Dashboard] Loading {CSV_PATH}...")
     refresh_data()
     threading.Thread(target=auto_refresh, args=(60,), daemon=True).start()
