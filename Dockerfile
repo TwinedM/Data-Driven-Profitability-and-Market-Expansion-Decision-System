@@ -23,6 +23,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Now copy everything else. Code changes only rebuild THIS layer.
 COPY app/ ./app/
 
+COPY "Amazon Sale Report.csv" ./
+
 # ── Layer 5: Create output directory ─────────────────────────
 # The container needs this folder to save generated reports.
 RUN mkdir -p /app/outputs
@@ -45,4 +47,4 @@ EXPOSE 5000
 # and is unreachable from outside.
 CMD ["python", "app/dashboard.py"]
 
-COPY "Amazon Sale Report.csv" ./
+
