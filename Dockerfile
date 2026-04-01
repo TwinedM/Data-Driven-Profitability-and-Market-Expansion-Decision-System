@@ -6,7 +6,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app/ ./app/
-COPY "Amazon Sale Report.csv" ./
+COPY Amazon\ Sale\ Report.csv ./
 
 RUN mkdir -p /app/outputs
 
