@@ -205,7 +205,7 @@ def run(csv_path: str) -> tuple:
     return kpis, df
 
 
-if __name__ == "__main__":
+if __name__ == "__main__": 
     import sys
     path = sys.argv[1] if len(sys.argv) > 1 else "amazon_sales.csv"
     kpis, df = run(path)

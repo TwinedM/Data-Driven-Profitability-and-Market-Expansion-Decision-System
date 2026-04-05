@@ -132,7 +132,7 @@ TEMPLATE = """<!DOCTYPE html><html lang="en"><head>
   .hdr{background:#1a1a2e;color:#fff;padding:18px 28px;display:flex;justify-content:space-between;align-items:center}
   .hdr h1{font-size:17px;font-weight:700}
   .sub{font-size:11px;color:#aab}
-  .kpi-row{display:flex;gap:12px;padding:18px 24px;flex-wrap:wrap}
+  .kpi-row{display:flex;gap:12px;paddi-ng:18px 24px;flex-wrap:wrap}
   .kc{background:#fff;border-radius:10px;padding:14px 18px;flex:1;min-width:130px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
   .kc .lbl{font-size:11px;color:#888;margin-bottom:5px}
   .kc .val{font-size:22px;font-weight:700}

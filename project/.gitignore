@@ -1,0 +1,26 @@
+# Environment secrets
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# macOS
+.DS_Store
+
+# Output / generated files
+outputs/
+*.png
+*.html
+
+# Logs
+*.log
+
+# Virtual environments
+venv/
+.env/
+
+# Docker
+*.dockerignore
