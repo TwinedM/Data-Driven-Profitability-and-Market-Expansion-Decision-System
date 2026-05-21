@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pricing — Revenue Intelligence</title>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f4f5f7; min-height: 100vh;
+    }
+    .header {
+      width: 100%; background: #1a1a2e; color: #fff;
+      padding: 18px 32px; margin-bottom: 60px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .header h1 { font-size: 18px; font-weight: 700; }
+    .header a { color: #aab; font-size: 13px; text-decoration: none; }
+    .container { max-width: 800px; margin: 0 auto; padding: 0 20px; }
+    h2 { text-align: center; font-size: 28px; color: #1a1a2e; margin-bottom: 8px; }
+    .sub { text-align: center; color: #666; font-size: 15px; margin-bottom: 48px; }
+    .banner {
+      background: #fff3cd; border: 1px solid #ffc107;
+      color: #856404; padding: 12px 20px; border-radius: 8px;
+      margin-bottom: 24px; text-align: center; font-size: 14px;
+    }
+    .plans {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 24px; margin-bottom: 48px;
+    }
+    @media(max-width:600px) { .plans { grid-template-columns: 1fr; } }
+    .plan {
+      background: #fff; border-radius: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+      padding: 36px 32px; position: relative;
+      border: 2px solid transparent; transition: border-color .2s;
+    }
+    .plan:hover { border-color: #185FA5; }
+    .plan.popular {
+      border-color: #185FA5;
+    }
+    .popular-badge {
+      position: absolute; top: -12px; left: 50%;
+      transform: translateX(-50%);
+      background: #185FA5; color: #fff;
+      font-size: 12px; font-weight: 700;
+      padding: 4px 16px; border-radius: 20px;
+    }
+    .plan-name { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 8px; }
+    .plan-price {
+      font-size: 42px; font-weight: 800; color: #185FA5;
+      margin: 16px 0 4px;
+    }
+    .plan-price span { font-size: 16px; color: #666; font-weight: 400; }
+    .plan-desc { color: #666; font-size: 13px; margin-bottom: 24px; }
+    .plan-features { list-style: none; margin-bottom: 32px; }
+    .plan-features li {
+      font-size: 14px; color: #444; padding: 6px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .plan-features li:before { content: "✓ "; color: #1D9E75; font-weight: 700; }
+    .btn {
+      width: 100%; padding: 14px; background: #185FA5; color: #fff;
+      border: none; border-radius: 10px; font-size: 16px;
+      font-weight: 700; cursor: pointer; transition: background .2s;
+    }
+    .btn:hover { background: #144d8a; }
+    .btn.secondary { background: #f4f5f7; color: #1a1a2e; }
+    .btn.secondary:hover { background: #e8e9eb; }
+    .guarantee {
+      text-align: center; color: #888; font-size: 13px; margin-top: 32px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Revenue Intelligence</h1>
+    <a href="/logout">Log out</a>
+  </div>
+
+  <div class="container">
+    <h2>Simple, transparent pricing</h2>
+    <p class="sub">Unlimited reports. Cancel anytime. No hidden fees.</p>
+
+    {% if message %}
+    <div class="banner">{{ message }}</div>
+    {% endif %}
+
+    <div class="plans">
+      <!-- Monthly Plan -->
+      <div class="plan">
+        <div class="plan-name">Monthly</div>
+        <div class="plan-price">₹2,999<span>/month</span></div>
+        <div class="plan-desc">Perfect for getting started</div>
+        <ul class="plan-features">
+          <li>Unlimited CSV uploads</li>
+          <li>AI-powered insights</li>
+          <li>State & category analysis</li>
+          <li>Plotly interactive dashboard</li>
+          <li>30 days access</li>
+        </ul>
+        <button class="btn secondary" onclick="startPayment('monthly', 299900)">
+          Get Started
+        </button>
+      </div>
+
+      <!-- 6-Month Plan -->
+      <div class="plan popular">
+        <div class="popular-badge">BEST VALUE</div>
+        <div class="plan-name">6 Months</div>
+        <div class="plan-price">₹14,999<span>/6 months</span></div>
+        <div class="plan-desc">Save ₹3,000 vs monthly</div>
+        <ul class="plan-features">
+          <li>Unlimited CSV uploads</li>
+          <li>AI-powered insights</li>
+          <li>State & category analysis</li>
+          <li>Plotly interactive dashboard</li>
+          <li>180 days access</li>
+          <li>Priority support</li>
+        </ul>
+        <button class="btn" onclick="startPayment('sixmonth', 1499900)">
+          Get Best Value
+        </button>
+      </div>
+    </div>
+
+    <p class="guarantee">🔒 Secure payment via Razorpay · UPI, Cards, NetBanking accepted</p>
+  </div>
+
+  <script>
+    async function startPayment(plan, amount) {
+      try {
+        // Step 1: Create order on our backend
+        const res = await fetch('/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan: plan, amount: amount })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert('Error creating order: ' + (data.detail || 'Unknown error'));
+          return;
+        }
+
+        // Step 2: Open Razorpay checkout
+        const options = {
+          key: data.razorpay_key_id,
+          amount: data.amount,
+          currency: 'INR',
+          name: 'Revenue Intelligence',
+          description: plan === 'monthly' ? 'Monthly Plan' : '6-Month Plan',
+          order_id: data.order_id,
+          handler: async function(response) {
+            // Step 3: Verify payment on our backend
+            const verifyRes = await fetch('/verify-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id:   response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature:  response.razorpay_signature,
+                plan: plan
+              })
+            });
+            const verifyData = await verifyRes.json();
+            if (verifyData.success) {
+              window.location.href = '/upload';
+            } else {
+              alert('Payment verification failed. Please contact support.');
+            }
+          },
+          prefill: { email: data.email },
+          theme: { color: '#185FA5' }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.open();
+
+      } catch (err) {
+        alert('Something went wrong: ' + err.message);
+      }
+    }
+  </script>
+</body>
+</html>

@@ -2,9 +2,17 @@ import uuid
 import os
 import tempfile
 import json
+import razorpay
+import hmac
+import hashlib
+from datetime import datetime, timedelta
+from dotenv import load_dotenv
+load_dotenv()
 from fastapi.requests import Request
 from pathlib import Path
 from typing import Any
+
+
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -204,7 +212,7 @@ def home(request: Request):
     user = get_current_user(request)
     if user:
         return RedirectResponse(url="/upload", status_code=302)
-    return RedirectResponse(url="/login", status_code=302)
+    return templates.TemplateResponse(request, "index.html")
 
 
 @app.post("/detect-columns")
@@ -384,21 +392,106 @@ def logout():
     response = RedirectResponse(url="/", status_code=302)
     response.delete_cookie("session")
     return response
+
+
+
+# ── Payment Routes ────────────────────────────────────────────────────────────
+
 @app.get("/pricing", response_class=HTMLResponse)
 def pricing_page(request: Request, message: str = None):
-    return HTMLResponse(content=f"""
-    <html><body style="font-family:sans-serif;text-align:center;padding:60px;background:#f4f5f7;">
-    <h1 style="color:#1a1a2e">Pricing</h1>
-    <p style="color:#666;margin:16px 0">{message or 'Choose a plan to get started'}</p>
-    <div style="background:#fff;border-radius:12px;padding:40px;max-width:400px;margin:0 auto;box-shadow:0 2px 12px rgba(0,0,0,.08)">
-        <h2 style="color:#185FA5">Monthly Plan</h2>
-        <p style="font-size:32px;font-weight:700;margin:12px 0">₹2,999<span style="font-size:16px;color:#666">/month</span></p>
-        <p style="color:#666;margin-bottom:24px">Unlimited reports for 30 days</p>
-        <p style="color:#999;font-size:13px">Payment integration coming soon.<br>Contact us to activate your account.</p>
-    </div>
-    </body></html>
-    """)
+    return templates.TemplateResponse(request, "pricing.html", {"message": message})
 
+
+@app.post("/create-order")
+async def create_order(request: Request):
+    from dependencies import get_current_user
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not logged in")
+
+    body = await request.json()
+    plan   = body.get("plan")
+    amount = body.get("amount")  # in paise (₹2999 = 299900 paise)
+
+    if plan not in ["monthly", "sixmonth"]:
+        raise HTTPException(status_code=400, detail="Invalid plan")
+
+    key_id     = os.environ.get("RAZORPAY_KEY_ID")
+    key_secret = os.environ.get("RAZORPAY_KEY_SECRET")
+
+    client = razorpay.Client(auth=(key_id, key_secret))
+
+    order = client.order.create({
+        "amount":   amount,
+        "currency": "INR",
+        "payment_capture": 1
+    })
+
+    return {
+        "order_id":       order["id"],
+        "amount":         amount,
+        "razorpay_key_id": key_id,
+        "email":          user.email,
+    }
+
+
+@app.post("/verify-payment")
+async def verify_payment(request: Request):
+    from dependencies import get_current_user
+    from datetime import timedelta
+
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not logged in")
+
+    body = await request.json()
+    order_id   = body.get("razorpay_order_id")
+    payment_id = body.get("razorpay_payment_id")
+    signature  = body.get("razorpay_signature")
+    plan       = body.get("plan")
+
+    key_secret = os.environ.get("RAZORPAY_KEY_SECRET", "")
+
+    # Verify signature — this proves Razorpay actually sent this
+    # If someone fakes a payment, this check catches them
+    message = f"{order_id}|{payment_id}"
+    expected = hmac.new(
+        key_secret.encode(),
+        message.encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+    if expected != signature:
+        return {"success": False, "detail": "Invalid signature"}
+
+    # Activate subscription in database
+    db = SessionLocal()
+    try:
+        now = datetime.utcnow()
+        end_date = now + timedelta(days=30 if plan == "monthly" else 180)
+
+        # Expire any existing subscriptions
+        existing = db.query(Subscription).filter(
+            Subscription.user_id == user.id,
+            Subscription.status == "active"
+        ).all()
+        for sub in existing:
+            sub.status = "expired"
+
+        # Create new subscription
+        new_sub = Subscription(
+            user_id    = user.id,
+            plan       = plan,
+            start_date = now,
+            end_date   = end_date,
+            status     = "active"
+        )
+        db.add(new_sub)
+        db.commit()
+
+        return {"success": True}
+    finally:
+        db.close()
 
 # ── Dev server entry point ────────────────────────────────────────────────────
 if __name__ == "__main__":
