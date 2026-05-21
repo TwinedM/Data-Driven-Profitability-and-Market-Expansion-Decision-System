@@ -7,4 +7,5 @@ COPY app/data/amazon_sales.csv ./amazon_sales.csv
 RUN mkdir -p /app/outputs
 ENV PORT=5000
 EXPOSE 5000
-CMD ["python", "app/dashboard.py"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+

@@ -223,10 +223,27 @@ def index():
         quadrant         = fig_quadrant(kpis),
         ff_method        = fig_fulfillment_method(kpis),
     )
-
+def render_dashboard(kpis: dict, insights: list) -> str:
+    from jinja2 import Template
+    t = Template(TEMPLATE)
+    return t.render(
+        total_revenue    = kpis["total_revenue"],
+        total_orders     = kpis["total_orders"],
+        avg_order_value  = kpis["avg_order_value"],
+        fulfillment_rate = kpis["fulfillment_rate"],
+        b2b_share        = kpis["b2b_revenue_share"],
+        insights         = insights,
+        insight_count    = len(insights),
+        refreshed_at     = "on demand",
+        trend            = fig_trend(kpis),
+        state            = fig_state(kpis),
+        cat              = fig_category(kpis),
+        quadrant         = fig_quadrant(kpis),
+        ff_method        = fig_fulfillment_method(kpis),
+    )
 
 if __name__ == "__main__":
-CSV_PATH = sys.argv[1] if len(sys.argv) > 1 else "Amazon Sale Report.csv"
+    CSV_PATH = sys.argv[1] if len(sys.argv) > 1 else "Amazon Sale Report.csv"
     print(f"[Dashboard] Loading {CSV_PATH}...")
     refresh_data()
     threading.Thread(target=auto_refresh, args=(60,), daemon=True).start()

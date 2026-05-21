@@ -1,4 +1,4 @@
-"""
+"""echo ".env" >> .gitignore
 kpi_engine.py
 Amazon Sales — KPI Engine
 Schema confirmed from Amazon Sale Report.csv headers:
@@ -203,6 +203,47 @@ def run(csv_path: str) -> tuple:
         f"Fulfillment: {kpis['fulfillment_rate']:.1f}%"
     )
     return kpis, df
+def load_data_from_df(df) -> pd.DataFrame:
+    df = df.copy()
+
+    # Handle missing columns with defaults BEFORE any processing
+    if "status" not in df.columns:
+        df["status"] = "Shipped"
+    if "ship_state" not in df.columns:
+        df["ship_state"] = "UNKNOWN"
+    if "ship_city" not in df.columns:
+        df["ship_city"] = "UNKNOWN"
+    if "category" not in df.columns:
+        df["category"] = "General"
+    if "fulfillment" not in df.columns:
+        df["fulfillment"] = "Unknown"
+    if "sales_channel" not in df.columns:
+        df["sales_channel"] = "Unknown"
+    if "quantity" not in df.columns:
+        df["quantity"] = 1
+    if "order_id" not in df.columns:
+        df["order_id"] = range(len(df))
+
+    df["ship_state"] = df["ship_state"].astype(str).str.upper().str.strip()
+    df["ship_city"]  = df["ship_city"].astype(str).str.upper().str.strip()
+    df["category"]   = df["category"].astype(str).str.strip()
+    df["status"]     = df["status"].astype(str).str.strip()
+
+    df["order_date"] = pd.to_datetime(df["order_date"], infer_datetime_format=True, errors="coerce")
+    df["year_month"] = df["order_date"].dt.to_period("M").astype(str)
+
+    df["is_fulfilled"] = df["status"].str.contains(
+        "ship|deliver|complet|fulfil", case=False, na=False
+    ).astype(int)
+
+    df["is_b2b"] = 0
+    df["amount"] = pd.to_numeric(df["amount"], errors="coerce")
+    df = df[df["amount"].notna() & (df["amount"] > 0)].copy()
+
+    return df
+
+
+
 
 
 if __name__ == "__main__": 

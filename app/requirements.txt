@@ -4,3 +4,7 @@ flask
 plotly
 schedule
 python-dotenv
+fastapi
+uvicorn[standard]
+python-multipart
+jinja2
