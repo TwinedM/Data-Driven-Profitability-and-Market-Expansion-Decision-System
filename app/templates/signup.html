@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up — Revenue Intelligence</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f4f5f7; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .header {
+      width: 100%; background: #1a1a2e; color: #fff;
+      padding: 18px 32px; margin-bottom: 60px;
+    }
+    .header h1 { font-size: 18px; font-weight: 700; }
+    .card {
+      background: #fff; border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+      padding: 40px; width: 100%; max-width: 420px;
+    }
+    h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .sub { font-size: 13px; color: #666; margin-bottom: 28px; }
+    .field { margin-bottom: 18px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #333; }
+    input {
+      width: 100%; padding: 10px 14px; border: 1px solid #ddd;
+      border-radius: 8px; font-size: 14px; outline: none;
+      transition: border-color .2s;
+    }
+    input:focus { border-color: #185FA5; }
+    .btn {
+      width: 100%; padding: 13px; background: #185FA5; color: #fff;
+      border: none; border-radius: 8px; font-size: 15px;
+      font-weight: 700; cursor: pointer; margin-top: 8px;
+    }
+    .btn:hover { background: #144d8a; }
+    .error {
+      background: #fff0f0; border: 1px solid #ffcccc;
+      color: #cc0000; padding: 10px 14px; border-radius: 8px;
+      font-size: 13px; margin-bottom: 18px;
+    }
+    .link { text-align: center; margin-top: 20px; font-size: 13px; color: #666; }
+    .link a { color: #185FA5; text-decoration: none; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="header"><h1>Revenue Intelligence</h1></div>
+  <div class="card">
+    <h2>Create your account</h2>
+    <p class="sub">Start analyzing your sales data in 30 seconds</p>
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+    <form method="POST" action="/signup">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" name="email" placeholder="you@example.com" required>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" name="password" placeholder="Min 6 characters" required>
+      </div>
+      <button class="btn" type="submit">Create Account</button>
+    </form>
+    <div class="link">Already have an account? <a href="/login">Log in</a></div>
+  </div>
+</body>
+</html>

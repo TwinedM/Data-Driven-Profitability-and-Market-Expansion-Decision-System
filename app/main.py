@@ -1,9 +1,8 @@
-
-
 import uuid
 import os
 import tempfile
 import json
+from fastapi.requests import Request
 from pathlib import Path
 from typing import Any
 
@@ -16,12 +15,26 @@ import kpi_engine
 import insights as ins_module
 import ai_insights as ai_module
 
+from itsdangerous import URLSafeTimedSerializer, BadSignature
+from fastapi.responses import RedirectResponse
+from fastapi import Form as FastAPIForm
+import bcrypt
+from database import get_db, SessionLocal
+from models import User, Subscription, Report
+from sqlalchemy.orm import Session
+
+# Secret key for signing cookies — change this to a random string in production
+SECRET_KEY = "revenue-intel-secret-key-change-in-production"
+serializer = URLSafeTimedSerializer(SECRET_KEY)
+
 # ── App setup ────────────────────────────────────────────────────────────────
 app = FastAPI(
     title="Revenue Intelligence API",
     description="Upload any sales CSV → get automated KPI analysis + AI-ready insights",
     version="2.0.0",
 )
+from database import init_db
+init_db()
 
 # In-memory store: { report_id: { "kpis": ..., "insights": ..., "filename": ... } }
 # Note: this resets on server restart. Phase 3 will add a real DB.
@@ -71,6 +84,13 @@ def health():
     """
     return {"status": "ok", "version": "2.0.0"}
 
+@app.get("/upload", response_class=HTMLResponse)
+def upload_page_direct(request: Request):
+    from dependencies import require_subscription
+    result = require_subscription(request)
+    if isinstance(result, RedirectResponse):
+        return result
+    return templates.TemplateResponse(request, "upload.html")
 
 @app.post("/upload")
 async def upload_csv(file: UploadFile = File(...)):
@@ -179,8 +199,12 @@ templates = Jinja2Templates(directory="templates")
 
 
 @app.get("/", response_class=HTMLResponse)
-def upload_page(request: Request):
-    return templates.TemplateResponse(request, "upload.html")
+def home(request: Request):
+    from dependencies import get_current_user
+    user = get_current_user(request)
+    if user:
+        return RedirectResponse(url="/upload", status_code=302)
+    return RedirectResponse(url="/login", status_code=302)
 
 
 @app.post("/detect-columns")
@@ -279,6 +303,101 @@ async def upload_mapped(
     }
   
 
+# ── Auth Routes ───────────────────────────────────────────────────────────────
+
+@app.get("/signup", response_class=HTMLResponse)
+def signup_page(request: Request):
+    return templates.TemplateResponse(request, "signup.html", {})
+
+@app.post("/signup")
+def signup(
+    request: Request,
+    email: str = FastAPIForm(...),
+    password: str = FastAPIForm(...)
+):
+    db = SessionLocal()
+    try:
+        # Check if email already exists
+        existing = db.query(User).filter(User.email == email).first()
+        if existing:
+            return templates.TemplateResponse(request, "signup.html", {
+                "error": "Email already registered. Please log in."
+            })
+
+        # Hash the password — never store plain text
+        password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+        # Create new user
+        user = User(email=email, password_hash=password_hash)
+        db.add(user)
+        db.commit()
+
+        # Redirect to login with success message
+        return RedirectResponse(url="/login?message=Account created! Please log in.", status_code=302)
+    finally:
+        db.close()
+
+
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request, message: str = None):
+    return templates.TemplateResponse(request, "login.html", {"message": message})
+
+
+@app.post("/login")
+def login(
+    request: Request,
+    email: str = FastAPIForm(...),
+    password: str = FastAPIForm(...)
+):
+    db = SessionLocal()
+    try:
+        # Find user by email
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            return templates.TemplateResponse(request, "login.html", {
+                "error": "No account found with that email."
+            })
+
+        # Check password
+        if not bcrypt.checkpw(password.encode(), user.password_hash.encode()):
+            return templates.TemplateResponse(request, "login.html", {
+                "error": "Incorrect password."
+            })
+
+        # Create signed session cookie with user ID
+        token = serializer.dumps({"user_id": user.id})
+
+        response = RedirectResponse(url="/upload", status_code=302)
+        response.set_cookie(
+            key="session",
+            value=token,
+            httponly=True,   # JS can't read this cookie — security
+            max_age=60*60*24*7  # 7 days
+        )
+        return response
+    finally:
+        db.close()
+
+
+@app.get("/logout")
+def logout():
+    response = RedirectResponse(url="/", status_code=302)
+    response.delete_cookie("session")
+    return response
+@app.get("/pricing", response_class=HTMLResponse)
+def pricing_page(request: Request, message: str = None):
+    return HTMLResponse(content=f"""
+    <html><body style="font-family:sans-serif;text-align:center;padding:60px;background:#f4f5f7;">
+    <h1 style="color:#1a1a2e">Pricing</h1>
+    <p style="color:#666;margin:16px 0">{message or 'Choose a plan to get started'}</p>
+    <div style="background:#fff;border-radius:12px;padding:40px;max-width:400px;margin:0 auto;box-shadow:0 2px 12px rgba(0,0,0,.08)">
+        <h2 style="color:#185FA5">Monthly Plan</h2>
+        <p style="font-size:32px;font-weight:700;margin:12px 0">₹2,999<span style="font-size:16px;color:#666">/month</span></p>
+        <p style="color:#666;margin-bottom:24px">Unlimited reports for 30 days</p>
+        <p style="color:#999;font-size:13px">Payment integration coming soon.<br>Contact us to activate your account.</p>
+    </div>
+    </body></html>
+    """)
 
 
 # ── Dev server entry point ────────────────────────────────────────────────────
