@@ -22,7 +22,7 @@ from insights import Insight
 
 
 CLAUDE_API_URL = "https://api.anthropic.com/v1/messages"
-CLAUDE_MODEL   = "claude-opus-4-20250514"
+CLAUDE_MODEL   = "claude-sonnet-4-20250514"
 
 
 def _serialize_kpis(kpis: dict) -> dict:
