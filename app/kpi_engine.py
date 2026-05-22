@@ -229,7 +229,7 @@ def load_data_from_df(df) -> pd.DataFrame:
     df["category"]   = df["category"].astype(str).str.strip()
     df["status"]     = df["status"].astype(str).str.strip()
 
-    df["order_date"] = pd.to_datetime(df["order_date"], infer_datetime_format=True, errors="coerce")
+    df["order_date"] = pd.to_datetime(df["order_date"], errors="coerce")
     df["year_month"] = df["order_date"].dt.to_period("M").astype(str)
 
     df["is_fulfilled"] = df["status"].str.contains(
