@@ -129,6 +129,7 @@ async def upload_csv(file: UploadFile = File(...)):
         os.unlink(tmp_path)  # clean up temp file
         raise HTTPException(status_code=422, detail=f"Failed to process CSV: {str(e)}")
     finally:
+        db.close()
         # Always clean up the temp file
         if os.path.exists(tmp_path):
             os.unlink(tmp_path)
@@ -339,9 +340,17 @@ def signup(
         user = User(email=email, password_hash=password_hash)
         db.add(user)
         db.commit()
+        try:
+            from email_service import send_welcome_email
+            send_welcome_email(email)
+        except Exception:
+            pass
 
         # Redirect to login with success message
-        return RedirectResponse(url="/login?message=Account created! Please log in.", status_code=302)
+        return RedirectResponse(
+            url="/login?message=Account created! Please log in.",
+            status_code=302,
+        )
     finally:
         db.close()
 
@@ -488,6 +497,15 @@ async def verify_payment(request: Request):
         )
         db.add(new_sub)
         db.commit()
+        try:
+            from email_service import send_payment_confirmation
+            send_payment_confirmation(
+                user.email,
+                plan,
+                end_date.strftime("%d %B %Y"),
+            )
+        except Exception:
+            pass
 
         return {"success": True}
     finally:

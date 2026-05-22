@@ -1,7 +1,10 @@
 """
-database.py — Database initialization
-Creates the SQLite file and all tables on startup.
-SessionLocal is used in every route to talk to the database.
+database.py — PostgreSQL database initialization
+Switched from SQLite to PostgreSQL for persistence across server restarts.
+SQLAlchemy handles both identically — only the connection URL changes.
+
+Local dev:  set DATABASE_URL in your .env file
+Production: set DATABASE_URL as environment variable on Render
 """
 
 from sqlalchemy import create_engine
@@ -9,38 +12,39 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 
-# SQLite file will be created at app/revenue_intel.db
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'revenue_intel.db')}"
-
-# Engine = the connection to the database file
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False}  # needed for SQLite with FastAPI
+# PostgreSQL on Render, SQLite fallback for local dev without env var
+DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    # Local fallback — SQLite so local dev still works without Postgres
+    f"sqlite:///{os.path.join(os.path.dirname(os.path.abspath(__file__)), 'revenue_intel.db')}"
 )
 
-# SessionLocal = factory for database sessions (one per request)
+# Render gives URLs starting with "postgres://" — SQLAlchemy needs "postgresql://"
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# Engine — connect_args only needed for SQLite
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+
+engine = create_engine(DATABASE_URL, connect_args=connect_args)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Base = parent class for all our models
 Base = declarative_base()
 
 
 def init_db():
     """
-    Creates all tables in the database if they don't exist yet.
-    Called once when the FastAPI app starts.
+    Creates all tables if they don't exist.
+    Called once on FastAPI startup.
+    On PostgreSQL this is safe to call every restart — skips existing tables.
     """
-    # Import models here so Base knows about them before creating tables
     import models  # noqa: F401
     Base.metadata.create_all(bind=engine)
 
 
 def get_db():
-    """
-    FastAPI dependency — gives each route a database session.
-    Automatically closes the session when the request is done.
-    """
+    """FastAPI dependency — one DB session per request, auto-closed after."""
     db = SessionLocal()
     try:
         yield db
