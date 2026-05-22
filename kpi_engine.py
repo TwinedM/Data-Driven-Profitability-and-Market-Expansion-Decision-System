@@ -57,7 +57,7 @@ def load_data(csv_path: str) -> pd.DataFrame:
     df["status"]     = df["status"].astype(str).str.strip()
 
     # Parse dates — your format is MM-DD-YY (e.g. 04-30-22)
-    df["order_date"] = pd.to_datetime(df["order_date"], format="%m-%d-%y", errors="coerce")
+    df["order_date"] = pd.to_datetime(df["order_date"], errors="coerce")
     df["year_month"] = df["order_date"].dt.to_period("M").astype(str)
 
     # Fulfillment flag — checks both "Shipped" and "Shipped - Delivered to Buyer"

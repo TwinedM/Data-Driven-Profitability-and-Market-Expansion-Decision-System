@@ -1,131 +1,204 @@
-# Data-Driven Profitability & Market Expansion — Automated Insight System
+# Revenue Intelligence — AI-Powered Sales Analytics for D2C Founders
 
-> **Amazon India Sales Analytics** — SQL pipeline + Python automation that ingests raw sales data, detects anomalies, generates ranked business insights, and delivers HTML reports and a live dashboard automatically.
+> Upload any sales CSV → get a founder-ready analytics report with AI insights in 30 seconds.
 
----
-
-## What this does
-
-| Before | After |
-|--------|-------|
-| Manual SQL → Tableau | Automated Python pipeline |
-| You read the dashboard | System generates ranked insights |
-| You decide what to do | System produces a concrete action table |
-| Static Tableau charts | Live browser dashboard (auto-refresh) + email report |
-| You run it manually | Scheduler / file watcher runs it automatically |
+**Live:** [data-driven-profitability-and-market.onrender.com](https://data-driven-profitability-and-market.onrender.com)  &nbsp;|&nbsp; **Stack:** FastAPI · Claude AI · Plotly · SQLite · Docker · Razorpay · Render
 
 ---
 
-## Project Structure
+## What It Does
 
-```
-├── datacleaning.sql           SQL: audit + fix case inconsistency, null handling
-├── kpi_analysis.sql           SQL: revenue by state, AOV, revenue share %
-├── fulfillment_analysis.sql   SQL: fulfillment rate by state
-├── market_expansion_model.sql SQL: composite market scoring (rank + fulfillment)
-│
-├── kpi_engine.py              Python: loads CSV, computes all KPIs (ports SQL logic)
-├── insights.py                Python: rule engine → ranked insights + action table
-├── report.py                  Python: builds HTML email report with embedded charts
-├── dashboard.py               Python: live browser dashboard (Flask + Plotly)
-└── run.py                     Python: entry point — one-shot / scheduler / file watcher
-```
+Indian D2C founders selling on Amazon, Flipkart, Shopify, or Meesho upload their sales CSV and instantly get:
+
+- **Revenue by state** — which markets are driving growth vs bleeding money
+- **Fulfillment rate analysis** — where orders are failing and why
+- **Category performance** — which SKUs to scale, which to cut
+- **Market quadrant map** — expansion targets with zero logistics risk
+- **AI-generated report** — Claude reads your actual numbers and writes a founder-ready action plan
+
+No data engineering. No waiting for an analyst. No generic advice.
 
 ---
 
-## Dataset
+## Screenshots
 
-Amazon India sales data with columns:
-`order_id`, `order_date`, `status`, `fulfillment` (Amazon/Merchant), `sales_channel`,
-`ship_city`, `ship_state`, `category`, `quantity`, `amount`, `b2b_flag`
-
-**Key data quality fix applied:** `ship_state` values were stored inconsistently
-(e.g. `Bihar`, `bihar`, `BIHAR` as separate rows). The cleaning pipeline normalises
-all state names to UPPER CASE before any aggregation.
-
----
-
-## Analytical Framework
-
-### 1. Revenue Share by State
-Identifies high-contributing markets and concentration risk.
-
-### 2. Fulfillment Quality Analysis
-Tracks operational efficiency across states and fulfillment methods (Amazon FBA vs Merchant).
-
-### 3. Market Quadrant Model
-Classifies every state into:
-- **Star markets** — high revenue, high fulfillment (protect)
-- **Revenue leakage** — high revenue, low fulfillment (fix urgently)
-- **Expansion targets** — low revenue, high fulfillment (scale with low risk)
-- **Low priority** — low on both (monitor only)
-
-### 4. Composite Expansion Score
-Ports the SQL `RANK() OVER` logic into Python — scores every state by
-`revenue_rank + fulfillment_rank` to surface the best expansion candidates.
-
-### 5. Automated Insight Rules
-8 rule functions that generate ranked findings:
-- Revenue concentration risk
-- Month-over-month alerts
-- Low-fulfillment high-revenue state detection
-- Expansion opportunity identification
-- Category underperformer detection
-- B2B revenue opportunity sizing
-- Amazon vs Merchant fulfillment gap
-- Risk-free scaling markets
-
----
-
-## Setup
-
-```bash
-pip install pandas matplotlib flask plotly schedule watchdog
-```
-
-Update `COLUMN_MAP` in `kpi_engine.py` if your CSV headers differ from the defaults.
-
----
-
-## Usage
-
-```bash
-# Run once — generates report.html
-python run.py amazon_sales.csv
-
-# Run + email the report (set env vars first)
-export SMTP_USER="your@gmail.com"
-export SMTP_PASS="your-app-password"
-python run.py amazon_sales.csv --email you@gmail.com
-
-# Schedule daily at 8 AM
-python run.py amazon_sales.csv --email you@gmail.com --schedule
-
-# Auto-trigger when new CSV is dropped
-python run.py amazon_sales.csv --watch
-
-# Start live dashboard
-python dashboard.py amazon_sales.csv
-# → open http://localhost:5000
-```
-
----
-
-## Business Outcome
-
-Transforms raw Amazon sales exports into an automated decision-support system.
-A non-technical stakeholder receives a daily email with the top insights and
-exact actions — no Tableau licence, no manual analysis, no dashboard reading required.
+> Add 3 screenshots here after deployment:
+> 1. Landing page hero
+> 2. Dashboard with KPI cards + charts
+> 3. AI insights panel
 
 ---
 
 ## Architecture
 
 ```
-Raw CSV
-  → kpi_engine.py   (clean + compute KPIs)
-  → insights.py     (rule engine → ranked insights + actions)
-  → report.py       (HTML email with embedded charts)
-  → dashboard.py    (live browser dashboard, auto-refresh)
-  → run.py          (scheduler / file watcher / one-shot)
+User (Browser)
+      │
+      ▼
+┌─────────────────────────────────────────┐
+│           FastAPI (Uvicorn/ASGI)        │  ← REST API, async routing
+│                                         │
+│  /upload     → KPI Engine              │
+│  /dashboard  → Plotly Chart Renderer   │
+│  /pricing    → Razorpay Checkout       │
+│  /login      → Session Auth (cookie)   │
+└──────────┬──────────────────┬──────────┘
+           │                  │
+           ▼                  ▼
+┌──────────────────┐  ┌───────────────────┐
+│   KPI Engine     │  │   Claude API      │
+│  (pandas)        │  │  (AI Insights)    │
+│                  │  │                   │
+│ • Revenue/state  │  │ Rule engine runs  │
+│ • Fulfillment %  │  │ first → top 3     │
+│ • Category perf  │  │ insights + KPI    │
+│ • MoM trends     │  │ snapshot sent to  │
+│ • Market quad    │  │ Claude → founder  │
+└──────────────────┘  │ prose generated   │
+                       └───────────────────┘
+           │
+           ▼
+┌──────────────────┐
+│  SQLite + ORM    │  ← Users, Subscriptions, Reports
+│  (SQLAlchemy)    │
+└──────────────────┘
+           │
+           ▼
+┌──────────────────┐
+│  Docker Container│  → Deployed on Render
+└──────────────────┘
 ```
+
+---
+
+## Tech Stack
+
+| Layer | Technology | Why |
+|---|---|---|
+| Backend | FastAPI (Python) | Async, fast, auto-docs |
+| AI Layer | Anthropic Claude API | Founder-language insights |
+| Data Engine | pandas + custom KPI engine | Flexible CSV processing |
+| Charts | Plotly | Interactive, embeddable |
+| Auth | itsdangerous + bcrypt | Signed cookies, hashed passwords |
+| Payments | Razorpay | UPI + Cards for Indian market |
+| Database | SQLite + SQLAlchemy ORM | Zero-config, production-ready for MVP |
+| Column Detection | Fuzzy matching (difflib) | Works with any CSV format |
+| Deployment | Docker + Render | One-command deploy |
+
+---
+
+## Key Features
+
+**Smart CSV ingestion** — fuzzy column auto-detection maps any CSV format (Amazon, Flipkart, Shopify, Meesho, custom) to a unified schema. No manual column mapping required.
+
+**Hybrid AI insights** — rule-based engine runs first (never fails, no API cost), then Claude API enriches the top 3 findings into a founder-ready prose report. Falls back gracefully if API key is missing.
+
+**Subscription gate** — users without active subscriptions are blocked from `/upload` and `/dashboard`. Razorpay payment activates access instantly via webhook verification (HMAC signature check).
+
+**Stateless report store** — each upload generates a short report ID (`/dashboard/a3f9c1b2`). Reports live in-memory for the session. Phase 2 will persist to PostgreSQL.
+
+---
+
+## Project Structure
+
+```
+automation/
+├── Dockerfile
+└── app/
+    ├── main.py           ← FastAPI app, all routes
+    ├── kpi_engine.py     ← KPI computation (revenue, fulfillment, trends)
+    ├── insights.py       ← Rule-based insight engine (fallback)
+    ├── ai_insights.py    ← Claude API hybrid insight generation
+    ├── column_mapper.py  ← Fuzzy CSV column auto-detection
+    ├── dashboard.py      ← Plotly chart rendering + HTML template
+    ├── models.py         ← SQLAlchemy: User, Subscription, Report
+    ├── database.py       ← SQLite init
+    ├── dependencies.py   ← Auth + subscription gate middleware
+    ├── requirements.txt
+    └── templates/
+        ├── index.html    ← Landing page
+        ├── upload.html   ← CSV upload + column mapping UI
+        ├── pricing.html  ← Razorpay checkout
+        ├── login.html
+        └── signup.html
+```
+
+---
+
+## Run Locally
+
+```bash
+# 1. Clone
+git clone https://github.com/gitdev77/Data-Driven-Profitability-and-Market-Expansion-Decision-System.git
+cd Data-Driven-Profitability-and-Market-Expansion-Decision-System/app
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Set environment variables
+export SECRET_KEY="your-secret-key"
+export RAZORPAY_KEY_ID="your-razorpay-key"
+export RAZORPAY_KEY_SECRET="your-razorpay-secret"
+export ANTHROPIC_API_KEY="your-claude-key"   # optional — fallback works without it
+
+# 4. Run
+uvicorn main:app --reload --port 8000
+
+# Open http://localhost:8000
+```
+
+**Docker:**
+```bash
+docker build -t revenue-intel .
+docker run -p 8000:8000 \
+  -e SECRET_KEY=xxx \
+  -e RAZORPAY_KEY_ID=xxx \
+  -e RAZORPAY_KEY_SECRET=xxx \
+  revenue-intel
+```
+
+---
+
+## Pricing
+
+| Plan | Price | Access |
+|---|---|---|
+| Monthly | ₹2,000/month | 30 days |
+| 6 Months | ₹10,000 | 180 days · save ₹2,000 |
+
+Payments via Razorpay — UPI, Cards, NetBanking, GPay accepted.
+
+---
+
+## Roadmap
+
+- [x] CSV upload with fuzzy column detection
+- [x] KPI engine (revenue, fulfillment, trends, market quadrant)
+- [x] Rule-based insight engine
+- [x] Claude AI hybrid insight generation
+- [x] Interactive Plotly dashboard
+- [x] User auth (signup/login/logout)
+- [x] Razorpay subscription payments
+- [x] Docker + Render deployment
+- [ ] Redis caching layer (dashboard load time < 200ms)
+- [ ] PostgreSQL migration (persistent reports)
+- [ ] Background job queue (async Claude API calls)
+- [ ] Multi-platform support (Meesho, Shopify native connectors)
+- [ ] Month-over-month comparison (baseline vs current)
+
+---
+
+## Resume Bullet
+
+> Built and deployed a full-stack AI SaaS product — **Revenue Intelligence** — using FastAPI, Claude API, Plotly, SQLAlchemy, and Docker; features fuzzy CSV ingestion, hybrid rule+AI insight generation, Razorpay subscription payments, and session-based auth; live at [data-driven-profitability-and-market.onrender.com](https://data-driven-profitability-and-market.onrender.com)
+
+---
+
+## About
+
+Built by **Devansh** — B.Tech Engineering Physics, NIT Hamirpur  
+Targeting: D2C founders selling on Indian marketplaces who need analyst-grade insights without hiring an analyst.
+
+---
+
+*© 2025 Revenue Intelligence · Built for Indian D2C founders*
