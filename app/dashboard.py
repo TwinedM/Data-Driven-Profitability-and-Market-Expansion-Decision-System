@@ -95,7 +95,8 @@ def fig_state(kpis):
         title="Revenue & Fulfillment by State",
         labels={"revenue": "Revenue (₹)", "fulfillment_rate": "Fulfillment %"},
     )
-    fig.update_layout(**PLOTLY_LAYOUT, yaxis=dict(autorange="reversed", gridcolor="#2a2d3e", tickfont=dict(color="#6b7280", size=10)))
+    fig.update_layout(**PLOTLY_LAYOUT)
+    fig.update_yaxes(autorange="reversed", gridcolor="#2a2d3e", tickfont=dict(color="#6b7280", size=10))
     return _html(fig)
 
 
@@ -150,12 +151,8 @@ def fig_fulfillment_method(kpis):
         go.Bar(name="Revenue",          x=df["fulfillment"], y=df["revenue"],          marker_color="#60a5fa"),
         go.Bar(name="Fulfillment Rate", x=df["fulfillment"], y=df["fulfillment_rate"], marker_color="#34d399", yaxis="y2"),
     ])
-    fig.update_layout(
-        barmode="group",
-        title="Amazon vs Merchant Fulfillment",
-        yaxis2=dict(overlaying="y", side="right", showgrid=False, tickfont=dict(color="#6b7280", size=10)),
-        **PLOTLY_LAYOUT,
-    )
+    fig.update_layout(barmode="group", title="Amazon vs Merchant Fulfillment", **PLOTLY_LAYOUT)
+    fig.update_layout(yaxis2=dict(overlaying="y", side="right", showgrid=False, tickfont=dict(color="#6b7280", size=10)))
     return _html(fig)
 
 
@@ -605,8 +602,3 @@ if __name__ == "__main__":
     print("[Dashboard] → http://localhost:5000")
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
-
-
-
-
-  
