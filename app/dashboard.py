@@ -358,13 +358,14 @@ TEMPLATE = """<!DOCTYPE html>
 <body>
 
 <!-- ── Header ── -->
-<div class="hdr">
-  <div class="hdr-left">
-    <div class="hdr-logo">📊</div>
-    <div>
-      <h1>Revenue <span>Intelligence</span></h1>
-      <div class="hdr-sub">Executive Dashboard · Automated Analysis</div>
-    </div>
+<div class="hdr-left">
+    <a href="/" style="text-decoration:none;display:flex;align-items:center;gap:12px">
+      <div class="hdr-logo">📊</div>
+      <div>
+        <h1>Revenue <span>Intelligence</span></h1>
+        <div class="hdr-sub">Executive Dashboard · Automated Analysis</div>
+      </div>
+    </a>
   </div>
   <div class="hdr-right">
     <div class="date-pill">📅 {{ refreshed_at }}</div>
