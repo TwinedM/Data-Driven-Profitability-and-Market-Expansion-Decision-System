@@ -129,7 +129,6 @@ async def upload_csv(file: UploadFile = File(...)):
         os.unlink(tmp_path)  # clean up temp file
         raise HTTPException(status_code=422, detail=f"Failed to process CSV: {str(e)}")
     finally:
-        db.close()
         # Always clean up the temp file
         if os.path.exists(tmp_path):
             os.unlink(tmp_path)
@@ -209,10 +208,6 @@ templates = Jinja2Templates(directory="templates")
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    from dependencies import get_current_user
-    user = get_current_user(request)
-    if user:
-        return RedirectResponse(url="/upload", status_code=302)
     return templates.TemplateResponse(request, "index.html")
 
 
