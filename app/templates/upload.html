@@ -81,7 +81,7 @@
       padding: 13px; background: #185FA5; color: #fff;
       border: none; border-radius: 8px; font-size: 15px;
       font-weight: 700; cursor: pointer; transition: background .2s;
-    }
+    
     .btn:hover   { background: #1450880; }
     .btn:disabled { background: #aaa; cursor: not-allowed; }
 
@@ -147,11 +147,22 @@
   <div id="status"></div>
 
   <div class="supported">
-    <strong>Supported column names (examples):</strong><br>
-    Revenue: amount, revenue, price, total, GMV, order value<br>
-    Date: date, order date, created_at, purchase date<br>
-    Region: state, ship-state, shipping state, province<br>
-    Status: status, order status, fulfillment status
+    <strong>🗂️ How column mapping works:</strong><br><br>
+    We auto-detect your columns. If anything is wrong, just use the dropdown to select the correct column from your CSV.<br><br>
+    <strong>Common column names by platform:</strong><br>
+    <table style="width:100%;font-size:12px;margin-top:8px;border-collapse:collapse;">
+      <tr style="background:#f0f1f5;">
+        <td style="padding:6px;font-weight:700;">Field</td>
+        <td style="padding:6px;font-weight:700;">Amazon</td>
+        <td style="padding:6px;font-weight:700;">Shopify</td>
+        <td style="padding:6px;font-weight:700;">Flipkart</td>
+      </tr>
+      <tr><td style="padding:6px;">Revenue</td><td style="padding:6px;">Amount</td><td style="padding:6px;">Total Price</td><td style="padding:6px;">Order Amount</td></tr>
+      <tr style="background:#f8f9fb;"><td style="padding:6px;">State</td><td style="padding:6px;">ship-state</td><td style="padding:6px;">Shipping Province</td><td style="padding:6px;">Delivery State</td></tr>
+      <tr><td style="padding:6px;">Date</td><td style="padding:6px;">Date</td><td style="padding:6px;">Created At</td><td style="padding:6px;">Order Date</td></tr>
+      <tr style="background:#f8f9fb;"><td style="padding:6px;">Status</td><td style="padding:6px;">Status</td><td style="padding:6px;">Financial Status</td><td style="padding:6px;">Shipment Status</td></tr>
+    </table><br>
+    <strong>⚡ Tip:</strong> Only 5 fields are required (marked ★). The rest are optional.
   </div>
 </div>
 
