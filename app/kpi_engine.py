@@ -248,7 +248,7 @@ def load_data_from_df(df) -> pd.DataFrame:
 
 if __name__ == "__main__": 
     import sys
-    path = sys.argv[1] if len(sys.argv) > 1 else "amazon_sales.csv"
+    path = sys.argv[1] if len(sys.argv) > 1 else "amazon_sale_report.csv"
     kpis, df = run(path)
     print("\nTop 5 States by Revenue:")
     print(kpis["revenue_by_state"].head(5).to_string(index=False))

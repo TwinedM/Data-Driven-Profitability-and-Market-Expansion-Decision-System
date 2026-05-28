@@ -1,62 +1,45 @@
 """
 dependencies.py — Auth + Subscription checks
+Rewritten for MongoDB. Logic is identical to the SQLAlchemy version —
+only the database calls have changed.
+
 These functions are called at the start of protected routes.
 """
 
 from fastapi import Request
 from fastapi.responses import RedirectResponse
 from itsdangerous import URLSafeTimedSerializer, BadSignature
-from database import SessionLocal
-from models import User, Subscription
-from datetime import datetime
+import os
 
-SECRET_KEY = "revenue-intel-secret-key-change-in-production"
+from database import get_database
+from models import get_user_by_id, is_subscription_active
+
+SECRET_KEY = os.environ.get("SECRET_KEY", "revenue-intel-secret-key-change-in-production")
 serializer = URLSafeTimedSerializer(SECRET_KEY)
 
 
-def get_current_user(request: Request):
+def get_current_user(request: Request) -> dict | None:
     """
-    Reads the session cookie and returns the User object.
-    Returns None if not logged in or cookie is invalid.
+    Reads the session cookie and returns the user document (dict with "id" key).
+    Returns None if not logged in or cookie is invalid/expired.
     """
     token = request.cookies.get("session")
     if not token:
         return None
     try:
-        data = serializer.loads(token, max_age=60*60*24*7)  # 7 days
+        data    = serializer.loads(token, max_age=60 * 60 * 24 * 7)  # 7 days
         user_id = data.get("user_id")
     except BadSignature:
         return None
 
-    db = SessionLocal()
-    try:
-        user = db.query(User).filter(User.id == user_id).first()
-        return user
-    finally:
-        db.close()
-
-
-def is_subscription_active(user_id: int) -> bool:
-    """
-    Returns True if user has an active subscription that hasn't expired.
-    Returns False if no subscription or subscription expired.
-    """
-    db = SessionLocal()
-    try:
-        sub = db.query(Subscription).filter(
-            Subscription.user_id == user_id,
-            Subscription.status == "active",
-            Subscription.end_date > datetime.utcnow()
-        ).first()
-        return sub is not None
-    finally:
-        db.close()
+    db = get_database()
+    return get_user_by_id(db, user_id)
 
 
 def require_login(request: Request):
     """
-    Call this at the start of any protected route.
-    Returns the User if logged in, or a RedirectResponse to /login.
+    Call at the start of any login-protected route.
+    Returns the user dict if logged in, or a RedirectResponse to /login.
     """
     user = get_current_user(request)
     if not user:
@@ -66,17 +49,19 @@ def require_login(request: Request):
 
 def require_subscription(request: Request):
     """
-    Call this at the start of any route that needs an active subscription.
-    Returns the User if logged in + subscribed.
+    Call at the start of any route that needs an active subscription.
+    Returns the user dict if logged in + subscribed.
     Redirects to /login if not logged in.
     Redirects to /pricing if logged in but no active subscription.
     """
     user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/login", status_code=302)
-    if not is_subscription_active(user.id):
+
+    db = get_database()
+    if not is_subscription_active(db, user["id"]):
         return RedirectResponse(
             url="/pricing?message=Subscribe to access reports",
-            status_code=302
+            status_code=302,
         )
     return user
