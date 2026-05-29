@@ -1,6 +1,12 @@
 # app/workers/analysis_worker.py
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from dotenv import load_dotenv
+load_dotenv()
 from datetime import datetime
-from app.database import get_database
+from database import get_database
 
 def run(job_id: str) -> dict:
     print(f"[Analysis Worker] Starting for job: {job_id}")
@@ -18,7 +24,7 @@ def run(job_id: str) -> dict:
     if not kpi_doc:
         raise ValueError(f"No KPI data found for job_id: {job_id}")
 
-    kpis = kpi_doc.get("data", {})
+    kpis = kpi_doc
     insights = []
 
     # Check 1 — Underperforming Categories
@@ -117,3 +123,15 @@ def run(job_id: str) -> dict:
 
     print(f"[Analysis Worker] Done. {len(insights)} insights found.")
     return {"job_id": job_id, "insights_count": len(insights)}
+
+if __name__ == "__main__":
+    TEST_JOB_ID = "test_job_001"
+    result = run(TEST_JOB_ID)
+    print(f"\nResult: {result}")
+    
+    from database import get_database
+    db = get_database()
+    findings = db.insights.find_one({"job_id": TEST_JOB_ID})
+    print(f"Insights in MongoDB: {findings['total_issues'] if findings else 'None'}")
+    job = db.processing_jobs.find_one({"job_id": TEST_JOB_ID})
+    print(f"Job status: {job['stage'] if job else 'None'}")
