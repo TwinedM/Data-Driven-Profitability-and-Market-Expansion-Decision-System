@@ -108,12 +108,13 @@ def run(job_id: str) -> dict:
             })
 
     # Save insights to MongoDB
+    db.insights.delete_one({"job_id": job_id})
     db.insights.insert_one({
-        "job_id": job_id,
-        "insights": insights,
-        "total_issues": len(insights),
-        "created_at": datetime.utcnow()
-    })
+    "job_id": job_id,
+    "insights": insights,
+    "total_issues": len(insights),
+    "created_at": datetime.utcnow()
+})
 
     # Update job status
     db.processing_jobs.update_one(
