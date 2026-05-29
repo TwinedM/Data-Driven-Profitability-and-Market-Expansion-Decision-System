@@ -76,7 +76,7 @@ def run(job_id: str) -> dict:
         # Step 5: Call Gemini
         print(f"[Report] Calling Gemini to generate report...")
         response = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model="gemini-2.0-flash-lite",
             contents=prompt
         )
         report_text = response.text
