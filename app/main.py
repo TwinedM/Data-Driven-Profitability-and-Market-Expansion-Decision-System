@@ -461,7 +461,9 @@ def login(
                 "error": "Incorrect password."
             })
         # Create signed session cookie with user ID
-        token = serializer.dumps({"user_id": str(user["_id"])})
+            # Handle both old and new user document formats
+        user_id = str(user.get("_id", user.get("id", email)))
+        token = serializer.dumps({"user_id": user_id})
         response = RedirectResponse(url="/upload", status_code=302)
         response.set_cookie(
             key="session",
