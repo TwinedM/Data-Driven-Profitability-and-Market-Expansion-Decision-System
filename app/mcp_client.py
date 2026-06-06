@@ -15,11 +15,9 @@ from google import genai
 from google.genai import types
 
 # Initialize Vertex AI client
-client = genai.Client(
-    vertexai=True,
-    project="project-93cda987-378d-4a64-b0f",
-    location="us-central1"
-)
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+client = genai.Client(api_key=GEMINI_API_KEY)
+
 
 MONGODB_URI = os.environ.get("MONGODB_URI")
 

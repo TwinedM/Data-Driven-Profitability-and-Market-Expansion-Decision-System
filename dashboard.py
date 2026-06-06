@@ -7,64 +7,64 @@ Run:  python dashboard.py amazon_sales.csv
 Open: http://localhost:5000
 """
 
-import sys, threading, time
+import sys
+import threading
+import time
+
 import pandas as pd
-import plotly.graph_objects as go
 import plotly.express as px
+import plotly.graph_objects as go
 import plotly.io as pio
 from flask import Flask, render_template_string
-import kpi_engine, insights as ins_module
+
+import insights as ins_module
+import kpi_engine
 
 app = Flask(__name__)
 CSV_PATH = "amazon_sales.csv"
-_cache   = {}
+_cache = {}
 
-PLOTLY_CFG    = dict(displayModeBar=False, responsive=True)
+PLOTLY_CFG = dict(displayModeBar=False, responsive=True)
 PLOTLY_LAYOUT = dict(
     font_family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
-    plot_bgcolor="white", paper_bgcolor="white",
+    plot_bgcolor="white",
+    paper_bgcolor="white",
     margin=dict(l=10, r=10, t=40, b=10),
 )
 
 
-def refresh_data():
+def refresh_data() -> None:
     try:
-        kpis, df = kpi_engine.run(CSV_PATH)
-        _cache["kpis"]         = kpis
-        _cache["insights"]     = ins_module.generate_insights(kpis)
+        kpis, _df = kpi_engine.run(CSV_PATH)
+        _cache["kpis"] = kpis
+        _cache["insights"] = ins_module.generate_insights(kpis)
         _cache["refreshed_at"] = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"[Dashboard] Refreshed at {_cache['refreshed_at']}")
     except Exception as e:
         print(f"[Dashboard] Error: {e}")
 
 
-def auto_refresh(interval=60):
+def auto_refresh(interval: int = 60) -> None:
     while True:
         time.sleep(interval)
         refresh_data()
 
 
-def _html(fig):
+def _html(fig) -> str:
     return pio.to_html(fig, full_html=False, config=PLOTLY_CFG)
 
 
-def fig_trend(kpis):
+def fig_trend(kpis: dict) -> str:
     df = kpis["monthly_trend"].tail(12)
-    fig = px.area(df, x="year_month", y="revenue",
-                  title="Monthly Revenue Trend",
-                  color_discrete_sequence=["#185FA5"])
+    fig = px.area(
+        df,
+        x="year_month",
+        y="revenue",
+        title="Monthly Revenue Trend",
+        color_discrete_sequence=["#185FA5"],
+    )
     fig.update_layout(**PLOTLY_LAYOUT)
     fig.update_traces(line_width=2.5)
-    return _html(fig)
-
-
-def fig_state(kpis):
-    df = kpis["revenue_by_state"].head(15)
-    fig = px.bar(df, x="revenue", y="ship_state", orientation="h",
-                 color="fulfillment_rate", color_continuous_scale="Blues",
-                 title="Revenue & Fulfillment by State",
-                 labels={"revenue": "Revenue (₹)", "fulfillment_rate": "Fulfillment %"})
-    fig.update_layout(**PLOTLY_LAYOUT, yaxis=dict(autorange="reversed"))
     return _html(fig)
 
 
@@ -227,6 +227,32 @@ def index():
         ff_method        = fig_fulfillment_method(kpis),
     )
 def render_dashboard(kpis: dict, insights: list) -> str:
+    """Renders the full HTML dashboard and returns it as a string."""
+    from jinja2 import Template
+
+    t = Template(TEMPLATE)
+    return t.render(
+        total_revenue    = kpis["total_revenue"],
+        total_orders     = kpis["total_orders"],
+  def render_dashboard(kpis: dict, insights: list) -> str:
+        fulfillment_rate = kpis["fulfillment_rate"],
+        b2b_share        = kpis["b2b_revenue_share"],
+        insights         = insights,
+        insight_count    = len(insights),
+        refreshed_at     = "on demand",
+        trend            = fig_trend(kpis),
+        state            = fig_state(kpis),
+        cat              = fig_category(kpis),
+        quadrant         = fig_quadrant(kpis),
+        ff_method        = fig_fulfillment_method(kpis),
+    )
+
+
+if __name__ == "__main__":
+    CSV_PATH = sys.argv[1] if len(sys.argv) > 1 else "amazon_sales.csv"
+    print(f"[Dashboard] Loading {CSV_PATH}...")
+    refresh_data()
+    threading.Thread(target=auto_refresh, args=(60,), daemon=True).start()
     """
     Renders the full HTML dashboard and returns it as a string.
     Used by FastAPI's /dashboard/{report_id} endpoint.

@@ -88,16 +88,20 @@ def run(job_id: str) -> dict:
 
         # Delete previous data for this job if re-running
         db.cleaned_orders.delete_many({"job_id": job_id})
+        db.cleaned_orders.insert_one({
+            "job_id": job_id,
+            "total_rows": len(orders_data),
+            "sample_rows": orders_data[:10],  # store only 10 sample rows
+            "columns": list(orders_data[0].keys()) if orders_data else [],
+            "stored_at": datetime.utcnow(),
+        })
 
-        # Insert in batches of 1000 for performance
-        if orders_data:
-            for i in range(0, len(orders_data), 1000):
-                batch = orders_data[i:i+1000]
-                for doc in batch:
-                    doc["job_id"] = job_id
-                db.cleaned_orders.insert_many(batch)
+        print(f"[Ingestion] Saved summary of {len(orders_data)} orders to MongoDB (sample only)")
 
-        print(f"[Ingestion] Saved {len(orders_data)} orders to MongoDB")
+
+           
+           
+        
 
         # ── Step 6: Save KPI snapshot to MongoDB ──────────────
         kpi_doc = _serialize_kpis(kpis, job_id)

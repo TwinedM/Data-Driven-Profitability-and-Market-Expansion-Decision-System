@@ -5,14 +5,15 @@ import json
 import razorpay
 import hmac
 import hashlib
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from orchestrator import run_pipeline, get_job_status, get_final_report
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 load_dotenv()
 from fastapi.requests import Request
 from pathlib import Path
 from typing import Any
-
-
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -27,9 +28,12 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature
 from fastapi.responses import RedirectResponse
 from fastapi import Form as FastAPIForm
 import bcrypt
-from database import get_db, SessionLocal
-from models import User, Subscription, Report
-from sqlalchemy.orm import Session
+from database import get_db, get_database
+from models import (
+    create_user, get_user_by_email, get_user_by_id,
+    create_subscription, is_subscription_active,
+    create_report, get_report_by_id
+)
 
 # Secret key for signing cookies — change this to a random string in production
 SECRET_KEY = "revenue-intel-secret-key-change-in-production"
@@ -203,7 +207,9 @@ from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
 import json
 
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(
+    directory=os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
+)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -249,25 +255,105 @@ async def detect_columns(file: UploadFile = File(...)):
 @app.post("/upload-mapped")
 async def upload_mapped(
     file: UploadFile = File(...),
-    mapping: str = Form(...)   # JSON string from the frontend
+    mapping: str = Form(...)
 ):
     """
-    Step 2 of Phase 3 upload flow.
-    Receives the CSV + confirmed column mapping.
-    Applies mapping, runs kpi_engine with renamed columns, stores report.
+    Multi-agent pipeline entry point.
+    CSV upload triggers all 4 agents sequentially via orchestrator.
     """
     import json
     from column_mapper import apply_mapping, get_missing_required
 
     col_map = json.loads(mapping)
-
-    # Validate required fields are mapped
     missing = get_missing_required(col_map)
     if missing:
         raise HTTPException(
             status_code=400,
             detail=f"Required columns not mapped: {', '.join(missing)}"
         )
+
+    # Save uploaded CSV to temp file
+    contents = await file.read()
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
+        tmp.write(contents)
+        tmp_path = tmp.name
+
+    try:
+        # Run full 4-agent pipeline via orchestrator
+        result = run_pipeline(
+            csv_path=tmp_path,
+            filename=file.filename,
+            user_id="anonymous"
+        )
+
+        if result["status"] == "failed":
+            raise HTTPException(
+                status_code=422,
+                detail=f"Pipeline failed: {result.get('error', 'Unknown error')}"
+            )
+
+        # Also store in REPORT_STORE for dashboard compatibility
+        import pandas as pd
+        df_raw = pd.read_csv(tmp_path)
+        df_raw.columns = df_raw.columns.str.strip()
+        df_mapped = apply_mapping(df_raw, col_map)
+        df_processed = kpi_engine.load_data_from_df(df_mapped)
+        kpis = kpi_engine.compute_kpis(df_processed)
+        insight_list = ai_module.generate_ai_insights(kpis, file.filename)
+
+        report_id = result["job_id"]
+        REPORT_STORE[report_id] = {
+            "kpis":      kpis,
+            "kpis_json": kpis_to_json_safe(kpis),
+            "insights":  insight_list,
+            "filename":  file.filename,
+        }
+
+        return {
+            "report_id":      report_id,
+            "filename":       file.filename,
+            "total_orders":   result.get("total_orders", 0),
+            "total_revenue":  result.get("total_revenue", 0),
+            "insight_count":  result.get("insights", 0),
+            "pipeline_status": "completed",
+            "agents_run":     4,
+        }
+        
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Failed to process CSV: {str(e)}")
+    finally:
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+             
+    @app.get("/status/{job_id}")
+    async def pipeline_status(job_id: str):
+          """Live status of the 4-agent pipeline."""
+    return get_job_status(job_id)
+
+@app.get("/mcp")
+async def mcp_endpoint():
+    """
+    MongoDB MCP server endpoint.
+    Registered in Google Cloud Agent Builder Registry.
+    """
+    from mcp_client import get_collection_stats
+    stats = get_collection_stats()
+    return {
+        "name": "mongodb-revenue-intel",
+        "version": "1.0.0",
+        "description": "MongoDB Atlas MCP server for Revenue Intelligence",
+        "tools": [
+            "get_revenue_kpis",
+            "get_business_insights",
+            "get_competitor_research",
+            "get_final_report"
+        ],
+        "mongodb_collections": stats,
+        "status": "active"
+    }
 
     contents = await file.read()
     with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
