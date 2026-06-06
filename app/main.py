@@ -98,10 +98,6 @@ def health():
 
 @app.get("/upload", response_class=HTMLResponse)
 def upload_page_direct(request: Request):
-    from dependencies import require_subscription
-    result = require_subscription(request)
-    if isinstance(result, RedirectResponse):
-        return result
     return templates.TemplateResponse(request, "upload.html")
 
 @app.post("/upload")
