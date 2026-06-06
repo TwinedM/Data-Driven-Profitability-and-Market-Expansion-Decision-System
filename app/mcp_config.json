@@ -1,0 +1,11 @@
+{
+    "mcpServers": {
+      "mongodb": {
+        "command": "mongodb-mcp-server",
+        "args": [],
+        "env": {
+          "MDB_MCP_CONNECTION_STRING": "mongodb+srv://devansh:revenueintel123@revenue-intel.vouhqja.mongodb.net/revenue_intel?retryWrites=true&w=majority"
+        }
+      }
+    }
+  }
