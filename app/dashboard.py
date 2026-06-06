@@ -540,7 +540,25 @@ TEMPLATE = """<!DOCTYPE html>
   </div>
 
   <div class="footer">
-    Revenue Intelligence System · Automated Analysis · Refreshes every 60s
+    {% if gemini_report %}
+<div style="margin:0 24px 24px;background:#0f1117;border:1px solid #1e2433;border-radius:16px;overflow:hidden;">
+  <div style="background:linear-gradient(135deg,rgba(167,139,250,0.12),rgba(96,165,250,0.08));border-bottom:1px solid #1e2433;padding:20px 24px;display:flex;align-items:center;gap:14px;">
+    <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#a78bfa,#60a5fa);display:flex;align-items:center;justify-content:center;font-size:20px;">✦</div>
+    <div>
+      <div style="font-size:16px;font-weight:700;color:#e2e8f0;">AI Founder Action Plan</div>
+      <div style="font-size:12px;color:#64748b;margin-top:2px;">Gemini 2.5 Flash · Google Cloud · MongoDB Atlas</div>
+    </div>
+  </div>
+  <div style="padding:24px;font-size:14px;color:#94a3b8;line-height:1.8;white-space:pre-wrap;">{{ gemini_report }}</div>
+</div>
+{% else %}
+<div style="margin:0 24px 24px;background:#0f1117;border:1px solid #1e2433;border-radius:16px;padding:40px;text-align:center;color:#64748b;">
+  <div style="font-size:32px;margin-bottom:12px;">✦</div>
+  <div>Gemini report not available. Re-upload your CSV to generate a fresh AI action plan.</div>
+</div>
+{% endif %}
+
+Revenue Intelligence System · Automated Analysis · Refreshes every 60s
   </div>
 
 </div>
@@ -571,27 +589,40 @@ def index():
     )
 
 
-def render_dashboard(kpis: dict, insights: list) -> str:
+def render_dashboard(kpis: dict, insights: list, gemini_report: str = None, filename: str = "", job_id: str = None) -> str:
     """
     Called by main.py's /dashboard/{report_id} route.
     Signature unchanged — main.py needs zero edits.
     """
     from jinja2 import Template
+    if not gemini_report and job_id:
+        try:
+            import sys, os
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+            from database import get_database
+            db = get_database()
+            report_doc = db.reports.find_one({"job_id": job_id})
+            if report_doc:
+                gemini_report = report_doc.get("report_text", "")
+        except Exception:
+            pass
     t = Template(TEMPLATE)
     return t.render(
-        total_revenue    = kpis["total_revenue"],
-        total_orders     = kpis["total_orders"],
-        avg_order_value  = kpis["avg_order_value"],
-        fulfillment_rate = kpis["fulfillment_rate"],
-        b2b_share        = kpis["b2b_revenue_share"],
+        total_revenue    = kpis.get("total_revenue", 0),
+        total_orders     = kpis.get("total_orders", 0),
+        avg_order_value  = kpis.get("avg_order_value", 0),
+        fulfillment_rate = kpis.get("fulfillment_rate", 0),
+        b2b_share        = kpis.get("b2b_revenue_share", 0),
         insights         = insights,
-        insight_count    = len(insights),
-        refreshed_at     = "on demand",
-        trend            = fig_trend(kpis),
-        state            = fig_state(kpis),
-        cat              = fig_category(kpis),
-        quadrant         = fig_quadrant(kpis),
-        ff_method        = fig_fulfillment_method(kpis),
+        insight_count    = len(insights) if insights else 0,
+        refreshed_at     = "just now",
+        filename         = filename or "sales_data.csv",
+        gemini_report    = gemini_report,
+        trend            = fig_trend(kpis) if "monthly_trend" in kpis else "",
+        state            = fig_state(kpis) if "revenue_by_state" in kpis else "",
+        cat              = fig_category(kpis) if "revenue_by_category" in kpis else "",
+        quadrant         = fig_quadrant(kpis) if "revenue_by_state" in kpis else "",
+        ff_method        = fig_fulfillment_method(kpis) if "by_fulfillment_method" in kpis else "",
     )
 
 
