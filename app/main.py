@@ -177,22 +177,26 @@ def get_report(report_id: str):
 
 @app.get("/dashboard/{report_id}", response_class=HTMLResponse)
 def get_dashboard(report_id: str):
-    """
-    Renders the full HTML dashboard for a given report.
-    Re-uses all the Plotly chart functions from dashboard.py.
-    """
-    if report_id not in REPORT_STORE:
-        raise HTTPException(status_code=404, detail=f"Report '{report_id}' not found.")
-
-    # Import dashboard rendering functions
-    # We import here (not at top) to avoid circular issues
     import dashboard as dash_module
+    
+    # Try in-memory first
+    if report_id in REPORT_STORE:
+        data = REPORT_STORE[report_id]
+        kpis = data["kpis"]
+        insight_list = data["insights"]
+    else:
+        # Fall back to MongoDB
+        db = get_database()
+        report = db.reports.find_one({"job_id": report_id})
+        kpi_doc = db.kpis.find_one({"job_id": report_id})
+        insights_doc = db.insights.find_one({"job_id": report_id})
+        
+        if not report or not kpi_doc:
+            raise HTTPException(status_code=404, detail="Report not found")
+        
+        kpis = kpi_doc
+        insight_list = insights_doc.get("insights", []) if insights_doc else []
 
-    data = REPORT_STORE[report_id]
-    kpis = data["kpis"]
-    insight_list = data["insights"]
-
-    # Build the HTML using dashboard.py's existing functions
     html = dash_module.render_dashboard(
         kpis=kpis,
         insights=insight_list,
