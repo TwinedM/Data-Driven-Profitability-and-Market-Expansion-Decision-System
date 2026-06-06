@@ -408,32 +408,32 @@ def signup(
     db = get_database()
     try:
         # Check if email already exists
-        existing = db.query(User).filter(User.email == email).first()
+        existing = get_user_by_email(db, email)
         if existing:
             return templates.TemplateResponse(request, "signup.html", {
                 "error": "Email already registered. Please log in."
             })
 
-        # Hash the password — never store plain text
+        # Hash the password
         password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
-        # Create new user
-        user = User(email=email, password_hash=password_hash)
-        db.add(user)
-        db.commit()
+        # Create new user in MongoDB
+        create_user(db, email, password_hash)
+
         try:
             from email_service import send_welcome_email
             send_welcome_email(email)
         except Exception:
             pass
 
-        # Redirect to login with success message
         return RedirectResponse(
             url="/login?message=Account created! Please log in.",
             status_code=302,
         )
-    finally:
-        db.close()
+    except Exception as e:
+        return templates.TemplateResponse(request, "signup.html", {
+            "error": f"Signup failed: {str(e)}"
+        })
 
 
 @app.get("/login", response_class=HTMLResponse)
@@ -449,33 +449,31 @@ def login(
 ):
     db = get_database()
     try:
-        # Find user by email
-        user = db.query(User).filter(User.email == email).first()
+        # Find user by email using MongoDB
+        user = get_user_by_email(db, email)
         if not user:
             return templates.TemplateResponse(request, "login.html", {
                 "error": "No account found with that email."
             })
-
         # Check password
-        if not bcrypt.checkpw(password.encode(), user.password_hash.encode()):
+        if not bcrypt.checkpw(password.encode(), user["password_hash"].encode()):
             return templates.TemplateResponse(request, "login.html", {
                 "error": "Incorrect password."
             })
-
         # Create signed session cookie with user ID
-        token = serializer.dumps({"user_id": user.id})
-
+        token = serializer.dumps({"user_id": str(user["_id"])})
         response = RedirectResponse(url="/upload", status_code=302)
         response.set_cookie(
             key="session",
             value=token,
-            httponly=True,   # JS can't read this cookie — security
-            max_age=60*60*24*7  # 7 days
+            httponly=True,
+            max_age=60*60*24*7
         )
         return response
-    finally:
-        db.close()
-
+    except Exception as e:
+        return templates.TemplateResponse(request, "login.html", {
+            "error": f"Login failed: {str(e)}"
+        })
 
 @app.get("/logout")
 def logout():
@@ -555,42 +553,33 @@ async def verify_payment(request: Request):
         return {"success": False, "detail": "Invalid signature"}
 
     # Activate subscription in database
+    # Activate subscription in database
     db = get_database()
     try:
         now = datetime.utcnow()
         end_date = now + timedelta(days=30 if plan == "monthly" else 180)
 
-        # Expire any existing subscriptions
-        existing = db.query(Subscription).filter(
-            Subscription.user_id == user.id,
-            Subscription.status == "active"
-        ).all()
-        for sub in existing:
-            sub.status = "expired"
-
-        # Create new subscription
-        new_sub = Subscription(
-            user_id    = user.id,
-            plan       = plan,
-            start_date = now,
-            end_date   = end_date,
-            status     = "active"
+        # Create subscription in MongoDB
+        create_subscription(
+            db=db,
+            user_id=str(user["_id"]),
+            plan=plan,
+            start_date=now,
+            end_date=end_date,
         )
-        db.add(new_sub)
-        db.commit()
+
         try:
             from email_service import send_payment_confirmation
             send_payment_confirmation(
-                user.email,
+                user["email"],
                 plan,
                 end_date.strftime("%d %B %Y"),
             )
         except Exception:
             pass
-
         return {"success": True}
-    finally:
-        db.close()
+    except Exception as e:
+        return {"success": False, "detail": str(e)}
 
 # ── Dev server entry point ────────────────────────────────────────────────────
 if __name__ == "__main__":
