@@ -28,7 +28,7 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature
 from fastapi.responses import RedirectResponse
 from fastapi import Form as FastAPIForm
 import bcrypt
-from database import get_db, get_database
+from database import get_database
 from models import (
     create_user, get_user_by_email, get_user_by_id,
     create_subscription, is_subscription_active,
@@ -405,7 +405,7 @@ def signup(
     email: str = FastAPIForm(...),
     password: str = FastAPIForm(...)
 ):
-    db = SessionLocal()
+    db = get_database()
     try:
         # Check if email already exists
         existing = db.query(User).filter(User.email == email).first()
@@ -447,7 +447,7 @@ def login(
     email: str = FastAPIForm(...),
     password: str = FastAPIForm(...)
 ):
-    db = SessionLocal()
+    db = get_database()
     try:
         # Find user by email
         user = db.query(User).filter(User.email == email).first()
@@ -555,7 +555,7 @@ async def verify_payment(request: Request):
         return {"success": False, "detail": "Invalid signature"}
 
     # Activate subscription in database
-    db = SessionLocal()
+    db = get_database()
     try:
         now = datetime.utcnow()
         end_date = now + timedelta(days=30 if plan == "monthly" else 180)
