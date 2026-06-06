@@ -6,9 +6,11 @@ pandas
 plotly
 python-dotenv
 requests
-sqlalchemy
 bcrypt
 itsdangerous
 razorpay
-psycopg2-binary
-flask
+pymongo[srv]
+google-genai
+google-cloud-aiplatform
+dnspython
+email-validator
