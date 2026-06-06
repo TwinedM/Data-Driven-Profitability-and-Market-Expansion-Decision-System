@@ -11,8 +11,11 @@ from database import get_database
 
 # Configure Gemini AFTER loading env
 from google import genai
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-client = genai.Client(api_key=GEMINI_API_KEY)
+client = genai.Client(
+    vertexai=True,
+    project="project-93cda987-378d-4a64-b0f",
+    location="us-central1"
+)
 
 
 
@@ -40,7 +43,7 @@ def run(job_id: str) -> dict:
 
         # Step 3: Get top 3 high severity insights to research
         high_insights = [i for i in insights if i.get("severity") in ["high", "critical"]]
-        top_insights = high_insights[:3] if high_insights else insights[:3]
+        top_insights = high_insights[:5] if high_insights else insights[:5]
 
         # Step 4: Research each insight with Gemini
         research_results = []
@@ -116,7 +119,7 @@ Keep it under 150 words. Be specific to Indian marketplace context.
 
     try:
         client.models.generate_content(
-    model="gemini-1.5-flash",
+    model="gemini-2.5-flash",
     contents=prompt
 )
         return {
@@ -155,7 +158,7 @@ Be specific, use Indian market context, mention real platforms.
 
     try:
         response = client.models.generate_content(
-    model="gemini-2.0-flash-lite",
+    model="gemini-2.5-flash-lite",
     contents=prompt
 )
         return response.text
