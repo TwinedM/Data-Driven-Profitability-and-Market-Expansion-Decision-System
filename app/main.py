@@ -98,10 +98,6 @@ def health():
 
 @app.get("/upload", response_class=HTMLResponse)
 def upload_page_direct(request: Request):
-    from dependencies import require_subscription
-    result = require_subscription(request)
-    if isinstance(result, RedirectResponse):
-        return result
     return templates.TemplateResponse(request, "upload.html")
 
 @app.post("/upload")
@@ -327,12 +323,12 @@ async def upload_mapped(
     finally:
         if os.path.exists(tmp_path):
             os.unlink(tmp_path)
-             
-    @app.get("/status/{job_id}")
-    async def pipeline_status(job_id: str):
-          """Live status of the 4-agent pipeline."""
-    return get_job_status(job_id)
 
+
+@app.get("/status/{job_id}")
+async def pipeline_status(job_id: str):
+    """Live status of the 4-agent pipeline."""
+    return get_job_status(job_id)
 @app.get("/mcp")
 async def mcp_endpoint():
     """
@@ -355,42 +351,6 @@ async def mcp_endpoint():
         "status": "active"
     }
 
-    contents = await file.read()
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
-        tmp.write(contents)
-        tmp_path = tmp.name
-
-    try:
-        import pandas as pd
-        df_raw = pd.read_csv(tmp_path)
-        df_raw.columns = df_raw.columns.str.strip()
-        df_mapped = apply_mapping(df_raw, col_map)
-        df_processed = kpi_engine.load_data_from_df(df_mapped)
-        if "status" not in df_processed.columns:
-            df_processed["status"] = "Shipped"
-        kpis = kpi_engine.compute_kpis(df_processed)
-        insight_list = ai_module.generate_ai_insights(kpis, file.filename)
-    except Exception as e:
-        raise HTTPException(status_code=422, detail=f"Failed to process CSV: {str(e)}")
-    finally:
-        for p in [tmp_path]:
-            if os.path.exists(p): os.unlink(p)
-
-    report_id = str(uuid.uuid4())[:8]
-    REPORT_STORE[report_id] = {
-        "kpis":      kpis,
-        "kpis_json": kpis_to_json_safe(kpis),
-        "insights":  insight_list,
-        "filename":  file.filename,
-    } 
-
-    return {
-        "report_id":     report_id,
-        "filename":      file.filename,
-        "total_orders":  int(kpis["total_orders"]),
-        "total_revenue": round(float(kpis["total_revenue"]), 2),
-        "insight_count": len(insight_list),
-    }
   
 
 # ── Auth Routes ───────────────────────────────────────────────────────────────
