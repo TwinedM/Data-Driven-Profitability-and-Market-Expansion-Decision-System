@@ -36,7 +36,7 @@ from models import (
 )
 from fastapi.templating import Jinja2Templates
 import dashboard as dash_module
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
 
 # Secret key for signing cookies — change this to a random string in production
 SECRET_KEY = "revenue-intel-secret-key-change-in-production"
