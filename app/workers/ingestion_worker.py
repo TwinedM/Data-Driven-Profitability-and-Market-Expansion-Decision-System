@@ -60,18 +60,17 @@ def run(job_id: str) -> dict:
         # ── Step 3: Auto-detect and map columns ───────────────
         headers = df_raw.columns.tolist()
         mapping = auto_detect_columns(headers)
-
-        # Check required fields are mapped
         missing = get_missing_required(mapping)
         if missing:
             raise ValueError(f"Missing required columns: {missing}")
 
-        # Apply column mapping
         df_mapped = apply_mapping(df_raw.copy(), mapping)
+        del df_raw  # free memory immediately
 
         # ── Step 4: Clean data + compute KPIs ─────────────────
-        # Uses your existing kpi_engine functions — zero changes
         df_clean = load_data_from_df(df_mapped)
+        del df_mapped  # free memory immediately
+        
         kpis = compute_kpis(df_clean)
 
         print(f"[Ingestion] KPIs computed — "
@@ -79,44 +78,39 @@ def run(job_id: str) -> dict:
               f"Orders: {kpis['total_orders']:,} | "
               f"Fulfillment: {kpis['fulfillment_rate']:.1f}%")
 
-        # ── Step 5: Save cleaned orders to MongoDB ────────────
-        # Convert DataFrame to list of dicts for MongoDB
-        orders_data = df_clean.to_dict(orient="records")
+        # ── Step 5: Save cleaned orders summary to MongoDB ────
+        # Only store sample rows — never the full DataFrame
+        sample_records = df_clean.head(10).to_dict(orient="records")
+        sample_records = _clean_for_mongo(sample_records)
+        total_rows = len(df_clean)
+        columns = list(df_clean.columns)
+        del df_clean  # free memory immediately
 
-        # Clean any NaN values (MongoDB doesn't accept NaN)
-        orders_data = _clean_for_mongo(orders_data)
-
-        # Delete previous data for this job if re-running
         db.cleaned_orders.delete_many({"job_id": job_id})
         db.cleaned_orders.insert_one({
             "job_id": job_id,
-            "total_rows": len(orders_data),
-            "sample_rows": orders_data[:10],  # store only 10 sample rows
-            "columns": list(orders_data[0].keys()) if orders_data else [],
+            "total_rows": total_rows,
+            "sample_rows": sample_records,
+            "columns": columns,
             "stored_at": datetime.utcnow(),
         })
-
-        print(f"[Ingestion] Saved summary of {len(orders_data)} orders to MongoDB (sample only)")
-
-
-           
-           
-        
+        print(f"[Ingestion] Saved summary of {total_rows} orders to MongoDB (sample only)")
 
         # ── Step 6: Save KPI snapshot to MongoDB ──────────────
         kpi_doc = _serialize_kpis(kpis, job_id)
+        del kpis  # free memory immediately
         db.kpis.delete_one({"job_id": job_id})
         db.kpis.insert_one(kpi_doc)
         print(f"[Ingestion] KPIs saved to MongoDB")
 
-        # ── Step 7: Update job status → ready for Agent 2 ─────
+        # ── Step 7: Update job status ──────────────────────────
         _update_job(db, job_id, "analyzing", {
             "ingestion_summary": {
-                "total_rows": len(df_raw),
-                "clean_rows": len(df_clean),
-                "total_revenue": kpis["total_revenue"],
-                "total_orders": kpis["total_orders"],
-                "fulfillment_rate": kpis["fulfillment_rate"],
+                "total_rows": total_rows,
+                "clean_rows": total_rows,
+                "total_revenue": kpi_doc.get("total_revenue"),
+                "total_orders": kpi_doc.get("total_orders"),
+                "fulfillment_rate": kpi_doc.get("fulfillment_rate"),
                 "filename": filename,
             }
         })
@@ -126,9 +120,9 @@ def run(job_id: str) -> dict:
         return {
             "status": "success",
             "job_id": job_id,
-            "rows_processed": len(df_clean),
-            "total_revenue": kpis["total_revenue"],
-            "total_orders": kpis["total_orders"],
+            "rows_processed": total_rows,
+            "total_revenue": kpi_doc.get("total_revenue"),
+            "total_orders": kpi_doc.get("total_orders"),
         }
 
     except Exception as e:
