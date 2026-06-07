@@ -27,7 +27,8 @@ def run_pipeline(csv_path: str, filename: str, user_id: str = "anonymous") -> di
     db = get_database()
     
     # Generate unique job ID
-    job_id = str(uuid.uuid4())[:8]
+    if job_id is None:
+        job_id = str(uuid.uuid4())[:8]
     
     print(f"\n{'='*50}")
     print(f"[Pipeline] Starting job {job_id}")
