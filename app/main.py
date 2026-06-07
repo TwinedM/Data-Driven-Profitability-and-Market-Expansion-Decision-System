@@ -48,6 +48,11 @@ app = FastAPI(
 from database import init_db
 init_db()
 
+from fastapi.templating import Jinja2Templates
+templates = Jinja2Templates(
+    directory=os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
+)
+
 # In-memory store: { report_id: { "kpis": ..., "insights": ..., "filename": ... } }
 # Note: this resets on server restart. Phase 3 will add a real DB.
 REPORT_STORE: dict[str, dict] = {}
