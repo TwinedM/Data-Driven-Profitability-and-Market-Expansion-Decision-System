@@ -50,7 +50,7 @@ def run(job_id: str) -> dict:
 
         # CSV was stored as bytes — read it into pandas
         if "csv_path" in upload:
-            df_raw = pd.read_csv(upload["csv_path"])
+            df_raw = pd.read_csv(upload["csv_path"],low_memory=False)
         else: 
             csv_bytes = upload["csv_bytes"]
             df_raw = pd.read_csv(io.BytesIO(csv_bytes))

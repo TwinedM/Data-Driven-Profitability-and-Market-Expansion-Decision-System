@@ -36,6 +36,7 @@ from models import (
 )
 from fastapi.templating import Jinja2Templates
 import dashboard as dash_module
+import threading
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
 
 # Secret key for signing cookies — change this to a random string in production
@@ -260,11 +261,8 @@ async def upload_mapped(
     file: UploadFile = File(...),
     mapping: str = FastAPIForm(...)
 ):
-    """
-    Multi-agent pipeline entry point.
-    CSV upload triggers all 4 agents sequentially via orchestrator.
-    """
     import json
+    import threading
     from column_mapper import apply_mapping, get_missing_required
 
     col_map = json.loads(mapping)
@@ -281,55 +279,37 @@ async def upload_mapped(
         tmp.write(contents)
         tmp_path = tmp.name
 
-    try:
-        # Run full 4-agent pipeline via orchestrator
-        result = run_pipeline(
-            csv_path=tmp_path,
-            filename=file.filename,
-            user_id="anonymous"
-        )
+    # Generate job_id upfront so we can return it immediately
+    job_id = str(uuid.uuid4())[:8]
 
-        if result["status"] == "failed":
-            raise HTTPException(
-                status_code=422,
-                detail=f"Pipeline failed: {result.get('error', 'Unknown error')}"
+    def run_in_background():
+        try:
+            run_pipeline(
+                csv_path=tmp_path,
+                filename=file.filename,
+                user_id="anonymous",
+                job_id=job_id,
             )
+        except Exception as e:
+            print(f"[Pipeline] Background error: {e}")
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
 
-        # Also store in REPORT_STORE for dashboard compatibility
-        import pandas as pd
-        df_raw = pd.read_csv(tmp_path)
-        df_raw.columns = df_raw.columns.str.strip()
-        df_mapped = apply_mapping(df_raw, col_map)
-        df_processed = kpi_engine.load_data_from_df(df_mapped)
-        kpis = kpi_engine.compute_kpis(df_processed)
-        insight_list = ai_module.generate_ai_insights(kpis, file.filename)
+    thread = threading.Thread(target=run_in_background, daemon=True)
+    thread.start()
 
-        report_id = result["job_id"]
-        REPORT_STORE[report_id] = {
-            "kpis":      kpis,
-            "kpis_json": kpis_to_json_safe(kpis),
-            "insights":  insight_list,
-            "filename":  file.filename,
+    # Return immediately — frontend polls /status/{job_id}
+    return {
+        "report_id":       job_id,
+        "filename":        file.filename,
+        "pipeline_status": "processing",
+        "agents_run":      0,
+        "endpoints": {
+            "status":    f"/status/{job_id}",
+            "dashboard": f"/dashboard/{job_id}",
         }
-
-        return {
-            "report_id":      report_id,
-            "filename":       file.filename,
-            "total_orders":   result.get("total_orders", 0),
-            "total_revenue":  result.get("total_revenue", 0),
-            "insight_count":  result.get("insights", 0),
-            "pipeline_status": "completed",
-            "agents_run":     4,
-        }
-        
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=422, detail=f"Failed to process CSV: {str(e)}")
-    finally:
-        if os.path.exists(tmp_path):
-            os.unlink(tmp_path)
+    }
 
 
 @app.get("/status/{job_id}")
