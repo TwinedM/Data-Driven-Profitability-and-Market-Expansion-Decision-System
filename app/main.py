@@ -2,7 +2,7 @@ import uuid
 import os
 import tempfile
 import json
-import razorpay
+import razorpay 
 import hmac
 import hashlib
 import sys
@@ -34,6 +34,9 @@ from models import (
     create_subscription, is_subscription_active,
     create_report, get_report_by_id
 )
+from fastapi.templating import Jinja2Templates
+import dashboard as dash_module
+templates = Jinja2Templates(directory="templates")
 
 # Secret key for signing cookies — change this to a random string in production
 SECRET_KEY = "revenue-intel-secret-key-change-in-production"
@@ -512,7 +515,7 @@ async def verify_payment(request: Request):
     expected = hmac.new(
         key_secret.encode(),
         message.encode(),
-        hashlib.sha256
+        digestmod=hashlib.sha256
     ).hexdigest()
 
     if expected != signature:
