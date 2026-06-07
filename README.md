@@ -33,6 +33,9 @@ Hiring a business analyst costs ₹50,000+ per month. Most founders fly blind.
 
 Upload any sales CSV → 4 AI agents chain together → receive a complete founder action plan with charts, insights, and competitor research.
 
+![Dashboard](assets/dashboard1.jpeg)
+![Dashboard](assets/dashboard2.jpg)
+
 ---
 
 ## Architecture
@@ -172,7 +175,7 @@ pip install -r app/requirements.txt
 
 ### 3. Configure Environment Variables
 
-Create a `.env` file in the `app/` directory:
+Create a `.env` file:
 
 ```env
 MONGODB_URI=your_mongodb_atlas_uri
@@ -196,11 +199,12 @@ Upload the sample CSV from the repository to run the full 4-agent pipeline.
 
 ## Team
 
-| Name    | GitHub                                                | Role                                        |
-|---------|-------------------------------------------------------|---------------------------------------------|
-| Devansh | [@gitdev77](https://github.com/gitdev77)             | Backend, Agent Pipeline, Deployment         |
-| Peeuesh | [@TwinedM](https://github.com/TwinedM)               | Research Worker, MongoDB Integration        |
-| Medha   | [@medhasharma2805](https://github.com/medhasharma2805) | Analysis Worker, Report Worker, Docs      |
+| Name    | GitHub                                                    | Role                                        |
+|---------|-----------------------------------------------------------|---------------------------------------------|
+| Devansh | [@gitdev77](https://github.com/gitdev77)                 | Backend, Agent Pipeline, Deployment         |
+| Medha   | [@medhasharma2805](https://github.com/medhasharma2805)   | Analysis Worker, Report Worker, Docs        |
+| Peeuesh | [@TwinedM](https://github.com/TwinedM)                   | Research Worker, MongoDB Integration        |
+
 ---
 
 ## License
