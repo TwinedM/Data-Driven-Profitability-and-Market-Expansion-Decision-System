@@ -16,18 +16,11 @@ from workers.research_worker import run as research_run
 from workers.report_worker import run as report_run
 
 
-def run_pipeline(csv_path: str, filename: str, user_id: str = "anonymous") -> dict:
-    """
-    Main pipeline — chains all 4 agents sequentially.
-    Called by main.py's /upload-mapped route.
-    
-    Returns:
-        dict with job_id, status, and report summary
-    """
+def run_pipeline(csv_path: str, filename: str, user_id: str = "anonymous", job_id: str = None) -> dict:
     db = get_database()
     
     # Generate unique job ID
-    if job_id is None:
+    if not job_id:
         job_id = str(uuid.uuid4())[:8]
     
     print(f"\n{'='*50}")
