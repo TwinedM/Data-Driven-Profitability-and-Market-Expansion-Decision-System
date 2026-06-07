@@ -255,7 +255,7 @@ async def detect_columns(file: UploadFile = File(...)):
 @app.post("/upload-mapped")
 async def upload_mapped(
     file: UploadFile = File(...),
-    mapping: str = Form(...)
+    mapping: str = FastAPIForm(...)
 ):
     """
     Multi-agent pipeline entry point.
