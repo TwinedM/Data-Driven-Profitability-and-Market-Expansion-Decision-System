@@ -197,9 +197,12 @@ def get_dashboard(report_id: str):
         kpis = kpi_doc
         insight_list = insights_doc.get("insights", []) if insights_doc else []
 
+    gemini_report = report.get("report_text", "") if report else ""
     html = dash_module.render_dashboard(
         kpis=kpis,
         insights=insight_list,
+        gemini_report=gemini_report,
+        job_id=report_id,
     )
     return HTMLResponse(content=html)
 from fastapi import Form
