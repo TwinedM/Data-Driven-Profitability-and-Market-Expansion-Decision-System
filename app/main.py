@@ -177,39 +177,39 @@ def get_report(report_id: str):
 
 @app.get("/dashboard/{report_id}", response_class=HTMLResponse)
 def get_dashboard(report_id: str):
-    import dashboard as dash_module
-    
-    # Try in-memory first
+    from database import get_database
+    db = get_database()
+
+    kpis = None
+    insight_list = []
+    gemini_report = ""
+
+    # Try in-memory store first
     if report_id in REPORT_STORE:
         data = REPORT_STORE[report_id]
         kpis = data["kpis"]
-        insight_list = data["insights"]
-    else:
-        # Fall back to MongoDB
-        db = get_database()
-        report = db.reports.find_one({"job_id": report_id})
+        insight_list = data.get("insights", [])
+
+    # Fall back to MongoDB
+    if kpis is None:
         kpi_doc = db.kpis.find_one({"job_id": report_id})
         insights_doc = db.insights.find_one({"job_id": report_id})
-        
-        if not report or not kpi_doc:
+        if not kpi_doc:
             raise HTTPException(status_code=404, detail="Report not found")
-        
         kpis = kpi_doc
         insight_list = insights_doc.get("insights", []) if insights_doc else []
+
+    # Always fetch Gemini report from MongoDB
+    rpt = db.reports.find_one({"job_id": report_id})
+    gemini_report = rpt.get("report_text", "") if rpt else ""
 
     html = dash_module.render_dashboard(
         kpis=kpis,
         insights=insight_list,
+        gemini_report=gemini_report,
+        job_id=report_id,
     )
     return HTMLResponse(content=html)
-from fastapi import Form
-from fastapi.templating import Jinja2Templates
-from fastapi.requests import Request
-import json
-
-templates = Jinja2Templates(
-    directory=os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
-)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -255,7 +255,7 @@ async def detect_columns(file: UploadFile = File(...)):
 @app.post("/upload-mapped")
 async def upload_mapped(
     file: UploadFile = File(...),
-    mapping: str = Form(...)
+    mapping: str = FastAPIForm(...)
 ):
     """
     Multi-agent pipeline entry point.
