@@ -22,6 +22,7 @@ PLOTLY_CFG = dict(displayModeBar=False, responsive=True)
 
 # Dark theme layout applied to every Plotly chart
 PLOTLY_LAYOUT = dict(
+    height=320,
     font=dict(
         family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
         color="#9ca3af",
@@ -29,7 +30,7 @@ PLOTLY_LAYOUT = dict(
     ),
     plot_bgcolor="#1a1d2e",
     paper_bgcolor="#1a1d2e",
-    margin=dict(l=10, r=10, t=40, b=10),
+    margin=dict(l=10, r=10, t=40, b=30),
     title_font=dict(color="#e2e8f0", size=13),
     xaxis=dict(
         gridcolor="#2a2d3e",
@@ -539,26 +540,27 @@ TEMPLATE = """<!DOCTYPE html>
     </div>
   </div>
 
-  <div class="footer">
-    {% if gemini_report %}
-<div style="margin:0 24px 24px;background:#0f1117;border:1px solid #1e2433;border-radius:16px;overflow:hidden;">
-  <div style="background:linear-gradient(135deg,rgba(167,139,250,0.12),rgba(96,165,250,0.08));border-bottom:1px solid #1e2433;padding:20px 24px;display:flex;align-items:center;gap:14px;">
-    <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#a78bfa,#60a5fa);display:flex;align-items:center;justify-content:center;font-size:20px;">✦</div>
-    <div>
-      <div style="font-size:16px;font-weight:700;color:#e2e8f0;">AI Founder Action Plan</div>
-      <div style="font-size:12px;color:#64748b;margin-top:2px;">Gemini 2.5 Flash · Google Cloud · MongoDB Atlas</div>
+  <!-- Gemini Report — outside footer, full width -->
+  {% if gemini_report %}
+  <div style="margin:20px 0;background:#1a1d2e;border:1px solid #2a2d3e;border-radius:16px;overflow:hidden;">
+    <div style="background:linear-gradient(135deg,rgba(167,139,250,0.12),rgba(96,165,250,0.08));border-bottom:1px solid #2a2d3e;padding:20px 24px;display:flex;align-items:center;gap:14px;">
+      <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#a78bfa,#60a5fa);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">✦</div>
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#e2e8f0;">AI Founder Action Plan</div>
+        <div style="font-size:12px;color:#6b7280;margin-top:2px;">Gemini 2.5 Flash · Google Cloud Agent Platform · MongoDB Atlas</div>
+      </div>
     </div>
+    <div style="padding:24px;font-size:14px;color:#94a3b8;line-height:1.8;white-space:pre-wrap;text-align:left;">{{ gemini_report }}</div>
   </div>
-  <div style="padding:24px;font-size:14px;color:#94a3b8;line-height:1.8;white-space:pre-wrap;">{{ gemini_report }}</div>
-</div>
-{% else %}
-<div style="margin:0 24px 24px;background:#0f1117;border:1px solid #1e2433;border-radius:16px;padding:40px;text-align:center;color:#64748b;">
-  <div style="font-size:32px;margin-bottom:12px;">✦</div>
-  <div>Gemini report not available. Re-upload your CSV to generate a fresh AI action plan.</div>
-</div>
-{% endif %}
+  {% else %}
+  <div style="margin:20px 0;background:#1a1d2e;border:1px solid #2a2d3e;border-radius:16px;padding:40px;text-align:center;color:#6b7280;">
+    <div style="font-size:32px;margin-bottom:12px;">✦</div>
+    <div style="font-size:14px;">Gemini report not available. Re-upload your CSV to generate a fresh AI action plan.</div>
+  </div>
+  {% endif %}
 
-Revenue Intelligence System · Automated Analysis · Refreshes every 60s
+  <div class="footer">
+    Revenue Intelligence System · Automated Analysis · Refreshes every 60s
   </div>
 
 </div>

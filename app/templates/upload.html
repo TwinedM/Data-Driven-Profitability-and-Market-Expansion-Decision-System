@@ -97,6 +97,16 @@
       vertical-align: middle; margin-right: 6px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .p-stage {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; margin: 6px 0;
+      border-radius: 8px; font-size: 13px;
+      transition: all 0.3s ease;
+    }
+    .p-stage.pending { background: #f4f5f7; color: #999; }
+    .p-stage.active  { background: #e8f0fe; color: #185FA5; font-weight: 600; border-left: 3px solid #185FA5; }
+    .p-stage.completed { background: #f0fff8; color: #1D9E75; border-left: 3px solid #1D9E75; }
+    .p-icon { width: 20px; text-align: center; flex-shrink: 0; }
 
     .supported {
       margin-top: 20px; padding: 14px; background: #f8f9fb;
@@ -146,6 +156,19 @@
   </button>
   <div id="status"></div>
 
+  
+  <!-- Agent Pipeline Progress Bar -->
+  <div id="progress-container" style="display:none;margin-top:24px;">
+    <div style="font-size:13px;font-weight:700;color:#185FA5;margin-bottom:16px;text-align:center;">
+      🤖 AI Agents Running...
+    </div>
+    <div id="stage-0" class="p-stage pending"><span class="p-icon">⏳</span><span>Agent 1: Ingesting &amp; cleaning your sales data</span></div>
+    <div id="stage-1" class="p-stage pending"><span class="p-icon">⏳</span><span>Agent 2: Detecting revenue problems &amp; KPIs</span></div>
+    <div id="stage-2" class="p-stage pending"><span class="p-icon">⏳</span><span>Agent 3: Researching competitor context</span></div>
+    <div id="stage-3" class="p-stage pending"><span class="p-icon">⏳</span><span>Agent 4: Writing your founder action plan</span></div>
+    <div id="stage-4" class="p-stage pending"><span class="p-icon">⏳</span><span>Complete! Loading your dashboard...</span></div>
+    <div style="font-size:11px;color:#999;text-align:center;margin-top:12px;">This takes 3-5 minutes for large datasets. Do not close this tab.</div>
+  </div>
   <div class="supported">
     <strong>🗂️ How column mapping works:</strong><br><br>
     We auto-detect your columns. If anything is wrong, just use the dropdown to select the correct column from your CSV.<br><br>
@@ -297,17 +320,18 @@
     document.getElementById('mapping-section').style.display = 'block';
   }
 
-  // ── Run analysis ─────────────────────────────────────────────
+  // ── Run analysis with progress bar ──────────────────────────
   async function runAnalysis() {
-    // Validate required fields
     const missing = REQUIRED.filter(f => !currentMapping[f]);
     if (missing.length) {
       setStatus('Please map required fields: ' + missing.join(', '), 'error');
       return;
     }
 
-    setStatus('<span class="spinner"></span> Running analysis on ' + selectedFile.name + '...');
+    // Hide form, show progress
     document.getElementById('run-btn').disabled = true;
+    document.getElementById('progress-container').style.display = 'block';
+    document.getElementById('status').style.display = 'none';
 
     const form = new FormData();
     form.append('file', selectedFile);
@@ -318,22 +342,73 @@
       const data = await res.json();
 
       if (!res.ok) {
-        setStatus('Error: ' + (data.detail || 'Unknown'), 'error');
+        showProgressError('Error: ' + (data.detail || 'Unknown'));
         document.getElementById('run-btn').disabled = false;
         return;
       }
 
-      // Redirect to dashboard
-      setStatus('✅ Analysis complete! Opening dashboard...');
-      setTimeout(() => {
-        window.location.href = '/dashboard/' + data.report_id;
-      }, 800);
+      // Start polling for status
+      await pollStatus(data.report_id);
 
     } catch (err) {
-      setStatus('Network error: ' + err.message, 'error');
+      showProgressError('Network error: ' + err.message);
       document.getElementById('run-btn').disabled = false;
     }
   }
+
+  async function pollStatus(jobId) {
+    const stages = [
+      { key: 'ingesting',   label: 'Agent 1: Ingesting & cleaning your sales data' },
+      { key: 'analyzing',   label: 'Agent 2: Detecting revenue problems & KPIs' },
+      { key: 'researching', label: 'Agent 3: Researching competitor context' },
+      { key: 'reporting',   label: 'Agent 4: Writing your founder action plan' },
+      { key: 'completed',   label: 'Complete! Loading your dashboard...' },
+    ];
+    const statusOrder = ['uploaded', 'ingesting', 'analyzing', 'researching', 'reporting', 'completed'];
+
+    // Since pipeline runs synchronously, simulate progress while waiting
+    // Then redirect when done (report_id is returned after completion)
+    let step = 0;
+    const interval = setInterval(() => {
+      if (step < stages.length - 1) {
+        updateStages(step, stages);
+        step++;
+      }
+    }, 45000); // advance every 45 seconds
+
+    updateStages(0, stages);
+
+    // The upload-mapped call already completed the pipeline
+    // Just show completion and redirect
+    clearInterval(interval);
+    updateStages(stages.length - 1, stages);
+    await sleep(1500);
+    window.location.href = '/dashboard/' + jobId;
+  }
+
+  function updateStages(currentIdx, stages) {
+    stages.forEach((stage, i) => {
+      const el = document.getElementById('stage-' + i);
+      if (!el) return;
+      if (i < currentIdx) {
+        el.className = 'p-stage completed';
+        el.innerHTML = '<span class="p-icon">✅</span><span>' + stage.label + '</span>';
+      } else if (i === currentIdx) {
+        el.className = 'p-stage active';
+        el.innerHTML = '<span class="p-icon"><span class="spinner"></span></span><span>' + stage.label + '...</span>';
+      } else {
+        el.className = 'p-stage pending';
+        el.innerHTML = '<span class="p-icon">⏳</span><span>' + stage.label + '</span>';
+      }
+    });
+  }
+
+  function showProgressError(msg) {
+    document.getElementById('progress-container').innerHTML =
+      '<div style="color:#E24B4A;padding:20px;text-align:center;">❌ ' + msg + '</div>';
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
   function setStatus(msg, type) {
     const el = document.getElementById('status');

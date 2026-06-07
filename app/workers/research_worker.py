@@ -115,15 +115,26 @@ Keep it under 150 words. Be specific to Indian marketplace context.
 """
 
     try:
-        client.models.generate_content(
-    model="gemini-2.5-flash",
-    contents=prompt
-)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-lite",
+            contents=prompt,
+            config={
+                "tools": [{"google_search": {}}],
+            }
+        )
+        # Extract text from response
+        research_text = ""
+        try:
+            research_text = response.text
+        except Exception:
+            for part in response.candidates[0].content.parts:
+                if hasattr(part, 'text') and part.text:
+                    research_text += part.text
         return {
             "insight_type":  insight_type,
             "original_finding": message,
             "severity":      severity,
-            "research":      response.text,
+            "research":      research_text,
             "researched_at": datetime.utcnow().isoformat(),
         }
     except Exception as e:
