@@ -38,45 +38,31 @@ Upload any sales CSV → 4 AI agents chain together → receive a complete found
 
 ---
 
-## Architecture
-┌─────────────────────────────────────────────────┐
-│                USER (Browser)                   │
-│          Uploads Amazon/Flipkart CSV            │
-└──────────────────────┬──────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────┐
-│              FastAPI Backend                    │
-│     /upload → orchestrator → /status/{id}      │
-└──────────────────────┬──────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────┐
-│    Google Cloud Agent Platform (Agent Builder)  │
-│         Orchestrates 4-agent pipeline           │
-│    MCP Server: /mcp (MongoDB context injection) │
-└──┬──────────────┬──────────────┬────────────────┘
-│              │              │              │
-▼              ▼              ▼              ▼
-[Agent 1]    [Agent 2]      [Agent 3]      [Agent 4]
-Ingestion    Analysis       Research        Report
-Gemini 2.5 +   Gemini 2.5
-Google Search  Flash Lite
-Grounding
-│              │              │              │
-└──────────────┴──────────────┴──────────────┘
-│
-▼
-┌─────────────────────────────────────────────────┐
-│                MongoDB Atlas                    │
-│  uploads → kpis → insights → research → reports│
-└──────────────────────┬──────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────┐
-│       Plotly Dashboard + Gemini Action Plan     │
-└─────────────────────────────────────────────────┘
+# Architecture
 
+```mermaid
+flowchart LR
+
+U[User Browser]
+U --> F[FastAPI Backend]
+
+F --> O[Orchestrator]
+
+O --> A1[Agent 1<br/>Ingestion]
+O --> A2[Agent 2<br/>Analysis]
+O --> A3[Agent 3<br/>Research]
+O --> A4[Agent 4<br/>Report]
+
+A1 --> M[(MongoDB Atlas)]
+A2 --> M
+A3 --> M
+A4 --> M
+
+M --> G[Gemini 2.5 Flash]
+
+G --> P[Founder Action Plan]
+G --> D[Plotly Dashboard]
+```
 ---
 
 ## Agent Pipeline
