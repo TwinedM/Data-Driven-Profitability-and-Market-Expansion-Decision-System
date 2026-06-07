@@ -1,0 +1,7 @@
+pandas>=1.5
+matplotlib>=3.6
+flask>=2.2
+plotly>=5.11
+schedule>=1.2
+python-dotenv>=0.21
+watchdog>=3.0

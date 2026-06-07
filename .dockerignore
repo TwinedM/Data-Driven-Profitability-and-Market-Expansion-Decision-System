@@ -1,0 +1,22 @@
+# Never put secrets in the image
+.env
+
+# No need to ship CSV data — it'll be uploaded at runtime
+
+
+# Generated outputs don't belong in the image
+outputs/
+
+# Python cache — always regenerated
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Git history — irrelevant inside container
+.git/
+.gitignore
+
+# Dev tools
+.vscode/
+*.md

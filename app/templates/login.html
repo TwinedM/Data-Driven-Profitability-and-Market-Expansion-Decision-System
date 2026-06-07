@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Revenue Intelligence</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d2e;
+      --border:    #2a2d3e;
+      --purple:    #7c3aed;
+      --purple-lt: #a78bfa;
+      --blue:      #60a5fa;
+      --green:     #34d399;
+      --text:      #e2e8f0;
+      --muted:     #6b7280;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+    }
+
+    /* ── Ambient background ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 70% 60% at 15% 20%, rgba(124,58,237,0.1) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 85% 75%, rgba(96,165,250,0.07) 0%, transparent 55%);
+      pointer-events: none;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: relative; z-index: 10;
+      background: rgba(15,17,23,0.7);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 40px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 17px; font-weight: 700; color: #fff;
+      text-decoration: none;
+    }
+    .nav-logo-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--purple), #db2777);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px;
+    }
+    .nav-logo span { color: var(--purple-lt); }
+    .nav-right { font-size: 13px; color: var(--muted); }
+    .nav-right a { color: var(--purple-lt); text-decoration: none; font-weight: 600; }
+    .nav-right a:hover { color: #fff; }
+
+    /* ── Main layout ── */
+    .main {
+      position: relative; z-index: 1;
+      flex: 1; display: flex;
+      align-items: center; justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .login-wrap {
+      width: 100%; max-width: 420px;
+      animation: fadeUp .45s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Brand block ── */
+    .brand-block {
+      text-align: center; margin-bottom: 32px;
+    }
+    .brand-icon {
+      width: 52px; height: 52px;
+      background: linear-gradient(135deg, var(--purple), #db2777);
+      border-radius: 14px; margin: 0 auto 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 8px 24px rgba(124,58,237,0.35);
+    }
+    .brand-block h1 {
+      font-size: 22px; font-weight: 800; color: #fff;
+      margin-bottom: 6px;
+    }
+    .brand-block h1 span { color: var(--purple-lt); }
+    .brand-block p { font-size: 14px; color: var(--muted); }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px; padding: 36px 32px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.4),
+                  0 0 0 1px rgba(124,58,237,0.05);
+      position: relative; overflow: hidden;
+    }
+    /* Subtle top glow line */
+    .card::before {
+      content: '';
+      position: absolute; top: 0; left: 15%; right: 15%; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(124,58,237,0.5), transparent);
+    }
+
+    /* ── Alerts ── */
+    .alert-error {
+      background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25);
+      color: #fca5a5; padding: 11px 14px; border-radius: 10px;
+      font-size: 13px; margin-bottom: 20px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .alert-success {
+      background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.25);
+      color: #6ee7b7; padding: 11px 14px; border-radius: 10px;
+      font-size: 13px; margin-bottom: 20px;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* ── Form ── */
+    .field { margin-bottom: 18px; }
+    label {
+      display: block; font-size: 12px; font-weight: 600;
+      color: var(--muted); margin-bottom: 7px;
+      text-transform: uppercase; letter-spacing: .05em;
+    }
+    .input-wrap { position: relative; }
+    .input-icon {
+      position: absolute; left: 13px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px; pointer-events: none; opacity: .5;
+    }
+    input[type="email"],
+    input[type="password"] {
+      width: 100%; padding: 11px 14px 11px 38px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text);
+      font-size: 14px; font-family: inherit;
+      outline: none; transition: border-color .2s, background .2s;
+    }
+    input[type="email"]:focus,
+    input[type="password"]:focus {
+      border-color: var(--purple);
+      background: rgba(124,58,237,0.06);
+    }
+    input::placeholder { color: #374151; }
+
+    /* ── Submit button ── */
+    .btn-submit {
+      width: 100%; padding: 13px;
+      background: linear-gradient(135deg, var(--purple), #9333ea);
+      color: #fff; border: none; border-radius: 12px;
+      font-size: 15px; font-weight: 700;
+      cursor: pointer; margin-top: 6px;
+      transition: all .2s;
+      box-shadow: 0 4px 18px rgba(124,58,237,0.35);
+      letter-spacing: .01em;
+    }
+    .btn-submit:hover {
+      box-shadow: 0 8px 28px rgba(124,58,237,0.5);
+      transform: translateY(-1px);
+    }
+    .btn-submit:active { transform: translateY(0); }
+
+    /* ── Footer link ── */
+    .card-footer {
+      text-align: center; margin-top: 22px;
+      font-size: 13px; color: var(--muted);
+    }
+    .card-footer a {
+      color: var(--purple-lt); text-decoration: none; font-weight: 600;
+    }
+    .card-footer a:hover { color: #fff; }
+
+    /* ── Trust row ── */
+    .trust {
+      display: flex; align-items: center; justify-content: center;
+      gap: 16px; margin-top: 24px; flex-wrap: wrap;
+    }
+    .trust-item {
+      font-size: 11px; color: #374151;
+      display: flex; align-items: center; gap: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-icon">📊</div>
+    Revenue <span>Intelligence</span>
+  </a>
+  <div class="nav-right">
+    No account? <a href="/signup">Sign up free →</a>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="login-wrap">
+
+    <div class="brand-block">
+      <div class="brand-icon">📊</div>
+      <h1>Welcome <span>back</span></h1>
+      <p>Log in to access your revenue dashboard</p>
+    </div>
+
+    <div class="card">
+
+      {% if error %}
+      <div class="alert-error">⚠ {{ error }}</div>
+      {% endif %}
+
+      {% if message %}
+      <div class="alert-success">✓ {{ message }}</div>
+      {% endif %}
+
+      <form method="POST" action="/login">
+        <div class="field">
+          <label>Email address</label>
+          <div class="input-wrap">
+            <span class="input-icon">✉</span>
+            <input type="email" name="email" placeholder="you@example.com" required autocomplete="email">
+          </div>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input type="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+          </div>
+        </div>
+        <button class="btn-submit" type="submit">Log In →</button>
+      </form>
+
+      <div class="card-footer">
+        Don't have an account? <a href="/signup">Create one free</a>
+      </div>
+    </div>
+
+    <div class="trust">
+      <div class="trust-item">🔒 Encrypted session</div>
+      <div class="trust-item">·</div>
+      <div class="trust-item">🇮🇳 Built for Indian D2C</div>
+      <div class="trust-item">·</div>
+      <div class="trust-item">⚡ Instant dashboard access</div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

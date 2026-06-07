@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Revenue Intelligence — Upload</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f4f5f7; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .header {
+      width: 100%; background: #1a1a2e; color: #fff;
+      padding: 18px 32px; margin-bottom: 40px;
+    }
+    .header h1 { font-size: 18px; font-weight: 700; }
+    .header p  { font-size: 12px; color: #aab; margin-top: 4px; }
+
+    .card {
+      background: #fff; border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+      padding: 36px 40px; width: 100%; max-width: 560px;
+    }
+    h2 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .sub { font-size: 13px; color: #666; margin-bottom: 24px; }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed #c5c8d0; border-radius: 10px;
+      padding: 40px 20px; text-align: center; cursor: pointer;
+      transition: all .2s; background: #fafbfc;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: #185FA5; background: #f0f6ff;
+    }
+    .drop-zone .icon { font-size: 36px; margin-bottom: 10px; }
+    .drop-zone .label { font-size: 14px; color: #555; }
+    .drop-zone .hint  { font-size: 12px; color: #999; margin-top: 6px; }
+    #file-input { display: none; }
+
+    .file-chosen {
+      margin-top: 12px; font-size: 13px; color: #185FA5;
+      font-weight: 600; min-height: 20px;
+    }
+
+    /* Column mapping section */
+    #mapping-section { display: none; margin-top: 28px; }
+    .mapping-title {
+      font-size: 14px; font-weight: 700; margin-bottom: 4px;
+    }
+    .mapping-sub {
+      font-size: 12px; color: #666; margin-bottom: 16px;
+    }
+    .field-row {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 12px;
+    }
+    .field-label {
+      width: 130px; font-size: 13px; font-weight: 600; color: #333;
+    }
+    .field-label .req { color: #E24B4A; margin-left: 2px; }
+    .field-label .opt { color: #aaa; font-size: 11px; margin-left: 2px; }
+    select {
+      flex: 1; padding: 8px 10px; border: 1px solid #ddd;
+      border-radius: 6px; font-size: 13px; background: #fff;
+    }
+    select.ok   { border-color: #1D9E75; background: #f5fff9; }
+    select.warn { border-color: #E24B4A; background: #fff8f8; }
+
+    .confidence {
+      font-size: 11px; width: 50px; text-align: right;
+    }
+    .conf-high { color: #1D9E75; }
+    .conf-low  { color: #E24B4A; }
+
+    /* Button */
+    .btn {
+      display: block; width: 100%; margin-top: 24px;
+      padding: 13px; background: #185FA5; color: #fff;
+      border: none; border-radius: 8px; font-size: 15px;
+      font-weight: 700; cursor: pointer; transition: background .2s;
+    
+    .btn:hover   { background: #1450880; }
+    .btn:disabled { background: #aaa; cursor: not-allowed; }
+
+    /* Status */
+    #status {
+      margin-top: 16px; font-size: 13px; text-align: center;
+      min-height: 20px; color: #555;
+    }
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid #ccc; border-top-color: #185FA5;
+      border-radius: 50%; animation: spin .7s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .p-stage {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; margin: 6px 0;
+      border-radius: 8px; font-size: 13px;
+      transition: all 0.3s ease;
+    }
+    .p-stage.pending { background: #f4f5f7; color: #999; }
+    .p-stage.active  { background: #e8f0fe; color: #185FA5; font-weight: 600; border-left: 3px solid #185FA5; }
+    .p-stage.completed { background: #f0fff8; color: #1D9E75; border-left: 3px solid #1D9E75; }
+    .p-icon { width: 20px; text-align: center; flex-shrink: 0; }
+
+    .supported {
+      margin-top: 20px; padding: 14px; background: #f8f9fb;
+      border-radius: 8px; font-size: 12px; color: #666;
+    }
+    .supported strong { color: #333; }
+  </style>
+</head>
+<body>
+
+  <div class="header" style="display:flex;justify-content:space-between;align-items:center;">
+    <a href="/" style="text-decoration:none;color:inherit;">
+      <h1>Revenue Intelligence API</h1>
+      <p style="font-size:12px;color:#aab;margin-top:4px;">Upload any sales CSV → automated KPI analysis + insights</p>
+    </a>
+    <div style="display:flex;gap:16px;align-items:center;">
+      <a href="/" style="color:#aab;font-size:13px;text-decoration:none;">Home</a>
+      <a href="/logout" style="color:#aab;font-size:13px;text-decoration:none;">Log out</a>
+    </div>
+  </div>
+
+<div class="card">
+  <h2>Upload Sales Data</h2>
+  <p class="sub">We'll detect your columns automatically. Works with any sales platform.</p>
+
+  <!-- Drop zone -->
+  <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+    <div class="icon">📂</div>
+    <div class="label">Drop your CSV here or click to browse</div>
+    <div class="hint">Supports Amazon, Shopify, Flipkart, Meesho, WooCommerce, any sales CSV</div>
+  </div>
+  <input type="file" id="file-input" accept=".csv">
+  <div class="file-chosen" id="file-chosen"></div>
+
+  <!-- Column mapping -->
+  <div id="mapping-section">
+    <div class="mapping-title">Column Mapping</div>
+    <div class="mapping-sub">
+      We've auto-detected your columns. Review and correct if needed.
+      <span style="color:#E24B4A">★ Required</span> fields must be mapped.
+    </div>
+    <div id="mapping-rows"></div>
+  </div>
+
+  <button class="btn" id="run-btn" disabled onclick="runAnalysis()">
+    Run Analysis
+  </button>
+  <div id="status"></div>
+
+  
+  <!-- Agent Pipeline Progress Bar -->
+  <div id="progress-container" style="display:none;margin-top:24px;">
+    <div style="font-size:13px;font-weight:700;color:#185FA5;margin-bottom:16px;text-align:center;">
+      🤖 AI Agents Running...
+    </div>
+    <div id="stage-0" class="p-stage pending"><span class="p-icon">⏳</span><span>Agent 1: Ingesting &amp; cleaning your sales data</span></div>
+    <div id="stage-1" class="p-stage pending"><span class="p-icon">⏳</span><span>Agent 2: Detecting revenue problems &amp; KPIs</span></div>
+    <div id="stage-2" class="p-stage pending"><span class="p-icon">⏳</span><span>Agent 3: Researching competitor context</span></div>
+    <div id="stage-3" class="p-stage pending"><span class="p-icon">⏳</span><span>Agent 4: Writing your founder action plan</span></div>
+    <div id="stage-4" class="p-stage pending"><span class="p-icon">⏳</span><span>Complete! Loading your dashboard...</span></div>
+    <div style="font-size:11px;color:#999;text-align:center;margin-top:12px;">This takes 3-5 minutes for large datasets. Do not close this tab.</div>
+  </div>
+  <div class="supported">
+    <strong>🗂️ How column mapping works:</strong><br><br>
+    We auto-detect your columns. If anything is wrong, just use the dropdown to select the correct column from your CSV.<br><br>
+    <strong>Common column names by platform:</strong><br>
+    <table style="width:100%;font-size:12px;margin-top:8px;border-collapse:collapse;">
+      <tr style="background:#f0f1f5;">
+        <td style="padding:6px;font-weight:700;">Field</td>
+        <td style="padding:6px;font-weight:700;">Amazon</td>
+        <td style="padding:6px;font-weight:700;">Shopify</td>
+        <td style="padding:6px;font-weight:700;">Flipkart</td>
+      </tr>
+      <tr><td style="padding:6px;">Revenue</td><td style="padding:6px;">Amount</td><td style="padding:6px;">Total Price</td><td style="padding:6px;">Order Amount</td></tr>
+      <tr style="background:#f8f9fb;"><td style="padding:6px;">State</td><td style="padding:6px;">ship-state</td><td style="padding:6px;">Shipping Province</td><td style="padding:6px;">Delivery State</td></tr>
+      <tr><td style="padding:6px;">Date</td><td style="padding:6px;">Date</td><td style="padding:6px;">Created At</td><td style="padding:6px;">Order Date</td></tr>
+      <tr style="background:#f8f9fb;"><td style="padding:6px;">Status</td><td style="padding:6px;">Status</td><td style="padding:6px;">Financial Status</td><td style="padding:6px;">Shipment Status</td></tr>
+    </table><br>
+    <strong>⚡ Tip:</strong> Only 5 fields are required (marked ★). The rest are optional.
+  </div>
+</div>
+
+<script>
+  let selectedFile = null;
+  let detectedHeaders = [];
+  let currentMapping = {};
+
+  // ── Drag & drop ─────────────────────────────────────────────
+  const dropZone = document.getElementById('drop-zone');
+  dropZone.addEventListener('dragover', e => {
+    e.preventDefault(); dropZone.classList.add('dragover');
+  });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f && f.name.endsWith('.csv')) handleFile(f);
+    else setStatus('Please drop a .csv file.', 'error');
+  });
+
+  document.getElementById('file-input').addEventListener('change', e => {
+    if (e.target.files[0]) handleFile(e.target.files[0]);
+  });
+
+  // ── File selected → read headers → call /detect-columns ─────
+  function handleFile(file) {
+    selectedFile = file;
+    document.getElementById('file-chosen').textContent = '📄 ' + file.name;
+    setStatus('Detecting columns...');
+
+    // Read just the first line locally to get headers fast
+    const reader = new FileReader();
+    reader.onload = e => {
+      const firstLine = e.target.result.split('\n')[0];
+      detectedHeaders = firstLine.split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+      fetchColumnDetection(file);
+    };
+    reader.readAsText(file.slice(0, 4096)); // only read first 4KB for speed
+  }
+
+  // ── Call backend /detect-columns endpoint ────────────────────
+  async function fetchColumnDetection(file) {
+    const form = new FormData();
+    form.append('file', file);
+
+    try {
+      const res  = await fetch('/detect-columns', { method: 'POST', body: form });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setStatus('Error: ' + (data.detail || 'Unknown error'), 'error');
+        return;
+      }
+
+      currentMapping = data.mapping;
+      renderMappingUI(data.headers, data.mapping, data.confidence);
+      setStatus('');
+      document.getElementById('run-btn').disabled = false;
+
+    } catch (err) {
+      setStatus('Network error: ' + err.message, 'error');
+    }
+  }
+
+  // ── Render the column mapping dropdowns ──────────────────────
+  const REQUIRED = ['order_id','order_date','status','amount','ship_state'];
+  const ALL_FIELDS = [
+    'order_id','order_date','status','amount','ship_state',
+    'fulfillment','sales_channel','category','quantity','ship_city'
+  ];
+  const LABELS = {
+    order_id: 'Order ID', order_date: 'Date', status: 'Status',
+    amount: 'Revenue/Amount', ship_state: 'State/Region',
+    fulfillment: 'Fulfillment', sales_channel: 'Channel',
+    category: 'Category', quantity: 'Quantity', ship_city: 'City'
+  };
+
+  function renderMappingUI(headers, mapping, confidence) {
+    const container = document.getElementById('mapping-rows');
+    container.innerHTML = '';
+
+    ALL_FIELDS.forEach(field => {
+      const isRequired = REQUIRED.includes(field);
+      const mapped     = mapping[field];
+      const conf       = confidence[field] || 0;
+
+      const row = document.createElement('div');
+      row.className = 'field-row';
+
+      // Label
+      const lbl = document.createElement('div');
+      lbl.className = 'field-label';
+      lbl.innerHTML = LABELS[field] +
+        (isRequired ? '<span class="req">★</span>' : '<span class="opt">opt</span>');
+      row.appendChild(lbl);
+
+      // Select dropdown
+      const sel = document.createElement('select');
+      sel.id = 'map_' + field;
+      sel.className = mapped ? (conf >= 0.8 ? 'ok' : '') : (isRequired ? 'warn' : '');
+
+      // "Not mapped" option
+      const none = document.createElement('option');
+      none.value = ''; none.textContent = '— not mapped —';
+      if (!mapped) none.selected = true;
+      sel.appendChild(none);
+
+      // One option per CSV header
+      headers.forEach(h => {
+        const opt = document.createElement('option');
+        opt.value = h; opt.textContent = h;
+        if (h === mapped) opt.selected = true;
+        sel.appendChild(opt);
+      });
+
+      sel.addEventListener('change', () => {
+        currentMapping[field] = sel.value || null;
+        sel.className = sel.value ? 'ok' : (isRequired ? 'warn' : '');
+      });
+      row.appendChild(sel);
+
+      // Confidence badge
+      const badge = document.createElement('div');
+      badge.className = 'confidence ' + (conf >= 0.8 ? 'conf-high' : 'conf-low');
+      badge.textContent = mapped ? Math.round(conf * 100) + '%' : '—';
+      row.appendChild(badge);
+
+      container.appendChild(row);
+    });
+
+    document.getElementById('mapping-section').style.display = 'block';
+  }
+
+  // ── Run analysis with progress bar ──────────────────────────
+  async function runAnalysis() {
+    const missing = REQUIRED.filter(f => !currentMapping[f]);
+    if (missing.length) {
+      setStatus('Please map required fields: ' + missing.join(', '), 'error');
+      return;
+    }
+
+    // Hide form, show progress
+    document.getElementById('run-btn').disabled = true;
+    document.getElementById('progress-container').style.display = 'block';
+    document.getElementById('status').style.display = 'none';
+
+    const form = new FormData();
+    form.append('file', selectedFile);
+    form.append('mapping', JSON.stringify(currentMapping));
+
+    try {
+      const res  = await fetch('/upload-mapped', { method: 'POST', body: form });
+      const data = await res.json();
+
+      if (!res.ok) {
+        showProgressError('Error: ' + (data.detail || 'Unknown'));
+        document.getElementById('run-btn').disabled = false;
+        return;
+      }
+
+      // Start polling for status
+      await pollStatus(data.report_id);
+
+    } catch (err) {
+      showProgressError('Network error: ' + err.message);
+      document.getElementById('run-btn').disabled = false;
+    }
+  }
+
+  async function pollStatus(jobId) {
+    const stages = [
+      { key: 'ingesting',   label: 'Agent 1: Ingesting & cleaning your sales data' },
+      { key: 'analyzing',   label: 'Agent 2: Detecting revenue problems & KPIs' },
+      { key: 'researching', label: 'Agent 3: Researching competitor context' },
+      { key: 'reporting',   label: 'Agent 4: Writing your founder action plan' },
+      { key: 'completed',   label: 'Complete! Loading your dashboard...' },
+    ];
+    const statusOrder = ['uploaded', 'ingesting', 'analyzing', 'researching', 'reporting', 'completed'];
+
+    // Since pipeline runs synchronously, simulate progress while waiting
+    // Then redirect when done (report_id is returned after completion)
+    let step = 0;
+    const interval = setInterval(() => {
+      if (step < stages.length - 1) {
+        updateStages(step, stages);
+        step++;
+      }
+    }, 45000); // advance every 45 seconds
+
+    updateStages(0, stages);
+
+    // The upload-mapped call already completed the pipeline
+    // Just show completion and redirect
+    clearInterval(interval);
+    updateStages(stages.length - 1, stages);
+    await sleep(1500);
+    window.location.href = '/dashboard/' + jobId;
+  }
+
+  function updateStages(currentIdx, stages) {
+    stages.forEach((stage, i) => {
+      const el = document.getElementById('stage-' + i);
+      if (!el) return;
+      if (i < currentIdx) {
+        el.className = 'p-stage completed';
+        el.innerHTML = '<span class="p-icon">✅</span><span>' + stage.label + '</span>';
+      } else if (i === currentIdx) {
+        el.className = 'p-stage active';
+        el.innerHTML = '<span class="p-icon"><span class="spinner"></span></span><span>' + stage.label + '...</span>';
+      } else {
+        el.className = 'p-stage pending';
+        el.innerHTML = '<span class="p-icon">⏳</span><span>' + stage.label + '</span>';
+      }
+    });
+  }
+
+  function showProgressError(msg) {
+    document.getElementById('progress-container').innerHTML =
+      '<div style="color:#E24B4A;padding:20px;text-align:center;">❌ ' + msg + '</div>';
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  function setStatus(msg, type) {
+    const el = document.getElementById('status');
+    el.innerHTML = msg;
+    el.style.color = type === 'error' ? '#E24B4A' : '#555';
+  }
+</script>
+</body>
+</html>

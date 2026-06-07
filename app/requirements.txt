@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+python-multipart
+flask
+jinja2
+pandas
+plotly
+python-dotenv
+requests
+bcrypt
+itsdangerous
+razorpay
+pymongo[srv]
+google-genai
+google-cloud-aiplatform
+dnspython
+email-validator
