@@ -1,205 +1,212 @@
-# Revenue Intelligence — AI-Powered Sales Analytics for D2C Founders
+# Revenue Intelligence 
 
-> Upload any sales CSV → get a founder-ready analytics report with AI insights in 30 seconds.
+> **4 AI Agents that turn any sales CSV into a founder-ready action plan.**
 
-**Live:** [data-driven-profitability-and-market.onrender.com](https://data-driven-profitability-and-market.onrender.com)  &nbsp;|&nbsp; **Stack:** FastAPI · Claude AI · Plotly · SQLite · Docker · Razorpay · Render
+[![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Agent%20Builder-4285F4?style=flat&logo=googlecloud)](https://cloud.google.com)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=flat&logo=mongodb)](https://mongodb.com)
+[![Gemini](https://img.shields.io/badge/Gemini-2.5%20Flash-8E75B2?style=flat&logo=google)](https://ai.google.dev)
+[![Render](https://img.shields.io/badge/Deployed-Render-46E3B7?style=flat)](https://render.com)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
----
+**Live Demo:** https://data-driven-profitability-and-market.onrender.com
 
-## What It Does
-
-Indian D2C founders selling on Amazon, Flipkart, Shopify, or Meesho upload their sales CSV and instantly get:
-
-- **Revenue by state** — which markets are driving growth vs bleeding money
-- **Fulfillment rate analysis** — where orders are failing and why
-- **Category performance** — which SKUs to scale, which to cut
-- **Market quadrant map** — expansion targets with zero logistics risk
-- **AI-generated report** — Claude reads your actual numbers and writes a founder-ready action plan
-
-No data engineering. No waiting for an analyst. No generic advice.
+**Track:** Google Cloud Rapid Agent Hackathon · MongoDB Partner Prize
 
 ---
 
-## Screenshots
-<img width="1280" height="832" alt="dashboard" src="https://github.com/user-attachments/assets/88db6d10-39f1-4c36-9cf8-900a8a46972d" />
+## The Problem
 
-<img width="1280" height="832" alt="landing" src="https://github.com/user-attachments/assets/2bd80bac-dea1-47ff-8564-662426a02762" />
+Indian D2C founders selling on Amazon, Flipkart, Shopify, and Meesho generate thousands of rows of sales data every month — but have no visibility into what's actually happening.
 
-<img width="1280" height="832" alt="login" src="https://github.com/user-attachments/assets/a4149df0-fc63-41b7-a8c3-9c5e831452c4" />
+- Which products are silently losing revenue?
+- Which states have perfect fulfillment but zero marketing spend?
+- Are competitors undercutting prices in high-volume categories?
+- What should be fixed *first* to maximize growth?
 
+Hiring a business analyst costs ₹50,000+ per month. Most founders fly blind.
+
+**Revenue Intelligence automates the entire analysis pipeline in minutes.**
+
+---
+
+## The Solution
+
+Upload any sales CSV → 4 AI agents chain together → receive a complete founder action plan with charts, insights, and competitor research.
 
 ---
 
 ## Architecture
+┌─────────────────────────────────────────────────┐
+│                USER (Browser)                   │
+│          Uploads Amazon/Flipkart CSV            │
+└──────────────────────┬──────────────────────────┘
+│
+▼
+┌─────────────────────────────────────────────────┐
+│              FastAPI Backend                    │
+│     /upload → orchestrator → /status/{id}      │
+└──────────────────────┬──────────────────────────┘
+│
+▼
+┌─────────────────────────────────────────────────┐
+│    Google Cloud Agent Platform (Agent Builder)  │
+│         Orchestrates 4-agent pipeline           │
+│    MCP Server: /mcp (MongoDB context injection) │
+└──┬──────────────┬──────────────┬────────────────┘
+│              │              │              │
+▼              ▼              ▼              ▼
+[Agent 1]    [Agent 2]      [Agent 3]      [Agent 4]
+Ingestion    Analysis       Research        Report
+Gemini 2.5 +   Gemini 2.5
+Google Search  Flash Lite
+Grounding
+│              │              │              │
+└──────────────┴──────────────┴──────────────┘
+│
+▼
+┌─────────────────────────────────────────────────┐
+│                MongoDB Atlas                    │
+│  uploads → kpis → insights → research → reports│
+└──────────────────────┬──────────────────────────┘
+│
+▼
+┌─────────────────────────────────────────────────┐
+│       Plotly Dashboard + Gemini Action Plan     │
+└─────────────────────────────────────────────────┘
 
-```
-User (Browser)
-      │
-      ▼
-┌─────────────────────────────────────────┐
-│           FastAPI (Uvicorn/ASGI)        │  ← REST API, async routing
-│                                         │
-│  /upload     → KPI Engine              │
-│  /dashboard  → Plotly Chart Renderer   │
-│  /pricing    → Razorpay Checkout       │
-│  /login      → Session Auth (cookie)   │
-└──────────┬──────────────────┬──────────┘
-           │                  │
-           ▼                  ▼
-┌──────────────────┐  ┌───────────────────┐
-│   KPI Engine     │  │   Claude API      │
-│  (pandas)        │  │  (AI Insights)    │
-│                  │  │                   │
-│ • Revenue/state  │  │ Rule engine runs  │
-│ • Fulfillment %  │  │ first → top 3     │
-│ • Category perf  │  │ insights + KPI    │
-│ • MoM trends     │  │ snapshot sent to  │
-│ • Market quad    │  │ Claude → founder  │
-└──────────────────┘  │ prose generated   │
-                       └───────────────────┘
-           │
-           ▼
-┌──────────────────┐
-│  SQLite + ORM    │  ← Users, Subscriptions, Reports
-│  (SQLAlchemy)    │
-└──────────────────┘
-           │
-           ▼
-┌──────────────────┐
-│  Docker Container│  → Deployed on Render
-└──────────────────┘
-```
+---
+
+## Agent Pipeline
+
+### Agent 1 — Ingestion Agent
+Reads the uploaded CSV, auto-detects marketplace format (Amazon, Flipkart, Shopify, Meesho), cleans and standardizes the data, and computes 18 business KPIs including total revenue, AOV, fulfillment rate, B2B share, revenue by state, and category performance.
+
+**MongoDB Output:** `cleaned_orders`, `kpis`
+
+---
+
+### Agent 2 — Analysis Agent
+Reads KPI data and runs 5 detection engines to surface revenue decline, weak-performing states, product concentration risk, fulfillment issues, and category underperformance. Every insight is tagged with a severity level (Critical / High / Medium / Low) and a specific action.
+
+**MongoDB Output:** `insights`
+
+---
+
+### Agent 3 — Research Agent *(Gemini 2.5 Flash Lite + Google Search Grounding)*
+Takes the top 5 high-severity insights and uses Gemini with live Google Search grounding to research competitor pricing, industry benchmarks, market trends, and growth opportunities specific to the Indian D2C market.
+
+**MongoDB Output:** `research`
+
+---
+
+### Agent 4 — Report Agent *(Gemini 2.5 Flash Lite)*
+Reads KPIs, insights, and research, then generates a comprehensive founder action plan — prioritized, specific, and written in plain language a non-technical founder can act on immediately.
+
+**MongoDB Output:** `reports`
+
+---
+
+## MongoDB as Shared Agent Memory
+
+| Collection       | Written By | Read By              |
+|------------------|------------|----------------------|
+| uploads          | FastAPI    | Agent 1              |
+| cleaned_orders   | Agent 1    | Agent 2              |
+| kpis             | Agent 1    | Agent 2, Agent 4     |
+| insights         | Agent 2    | Agent 3, Agent 4     |
+| research         | Agent 3    | Agent 4              |
+| reports          | Agent 4    | Dashboard            |
+| processing_jobs  | All Agents | Status API           |
+
+MongoDB Atlas acts as the shared memory layer between all agents — each agent reads the previous agent's output and writes its own, enabling a clean sequential pipeline with full traceability.
+
+**MCP Server URL:** `https://data-driven-profitability-and-market.onrender.com/mcp`
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology | Why |
-|---|---|---|
-| Backend | FastAPI (Python) | Async, fast, auto-docs |
-| AI Layer | Anthropic Claude API | Founder-language insights |
-| Data Engine | pandas + custom KPI engine | Flexible CSV processing |
-| Charts | Plotly | Interactive, embeddable |
-| Auth | itsdangerous + bcrypt | Signed cookies, hashed passwords |
-| Payments | Razorpay | UPI + Cards for Indian market |
-| Database | SQLite + SQLAlchemy ORM | Zero-config, production-ready for MVP |
-| Column Detection | Fuzzy matching (difflib) | Works with any CSV format |
-| Deployment | Docker + Render | One-command deploy |
+| Layer               | Technology                        | Purpose                        |
+|---------------------|-----------------------------------|--------------------------------|
+| Backend             | FastAPI + Uvicorn                 | Async API server               |
+| AI Model            | Gemini 2.5 Flash Lite             | Research & Report Generation   |
+| Search Grounding    | Google Search (Gemini tool)       | Live competitor research       |
+| Agent Orchestration | Google Cloud Agent Builder        | Multi-agent workflow           |
+| Agent Context       | MongoDB MCP Server                | Context injection into agents  |
+| Database            | MongoDB Atlas (M0, Mumbai)        | Shared agent memory            |
+| Analytics           | Pandas + custom KPI engine        | Data processing (18 KPIs)      |
+| Visualization       | Plotly                            | Interactive dashboard charts   |
+| Authentication      | bcrypt + itsdangerous             | Secure sessions                |
+| Payments            | Razorpay                          | Subscription billing           |
+| Deployment          | Render (Python 3.11)              | Cloud hosting                  |
 
 ---
 
 ## Key Features
 
-**Smart CSV ingestion** — fuzzy column auto-detection maps any CSV format (Amazon, Flipkart, Shopify, Meesho, custom) to a unified schema. No manual column mapping required.
-
-**Hybrid AI insights** — rule-based engine runs first (never fails, no API cost), then Claude API enriches the top 3 findings into a founder-ready prose report. Falls back gracefully if API key is missing.
-
-**Subscription gate** — users without active subscriptions are blocked from `/upload` and `/dashboard`. Razorpay payment activates access instantly via webhook verification (HMAC signature check).
-
-**Stateless report store** — each upload generates a short report ID (`/dashboard/a3f9c1b2`). Reports live in-memory for the session. Phase 2 will persist to PostgreSQL.
-
----
-
-## Project Structure
-
-```
-automation/
-├── Dockerfile
-└── app/
-    ├── main.py           ← FastAPI app, all routes
-    ├── kpi_engine.py     ← KPI computation (revenue, fulfillment, trends)
-    ├── insights.py       ← Rule-based insight engine (fallback)
-    ├── ai_insights.py    ← Claude API hybrid insight generation
-    ├── column_mapper.py  ← Fuzzy CSV column auto-detection
-    ├── dashboard.py      ← Plotly chart rendering + HTML template
-    ├── models.py         ← SQLAlchemy: User, Subscription, Report
-    ├── database.py       ← SQLite init
-    ├── dependencies.py   ← Auth + subscription gate middleware
-    ├── requirements.txt
-    └── templates/
-        ├── index.html    ← Landing page
-        ├── upload.html   ← CSV upload + column mapping UI
-        ├── pricing.html  ← Razorpay checkout
-        ├── login.html
-        └── signup.html
-```
+- **Auto CSV Detection** — works with Amazon, Flipkart, Shopify, Meesho, or any sales format
+- **18 KPIs computed** — revenue, AOV, fulfillment rate, B2B share, state breakdown, category performance
+- **31 insight detectors** — flags revenue drops, weak markets, concentration risk, fulfillment issues
+- **Live Google Search grounding** — Agent 3 grounds competitor research in real web data
+- **Founder action plan** — Gemini generates a prioritized, plain-language report
+- **MongoDB agent memory** — full pipeline traceability across all 6 collections
+- **MCP server integration** — registered in Google Cloud Agent Builder registry
 
 ---
 
-## Run Locally
+## Local Setup
+
+### 1. Clone Repository
 
 ```bash
-# 1. Clone
-git clone https://github.com/gitdev77/Data-Driven-Profitability-and-Market-Expansion-Decision-System.git
-cd Data-Driven-Profitability-and-Market-Expansion-Decision-System/app
-
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. Set environment variables
-export SECRET_KEY="your-secret-key"
-export RAZORPAY_KEY_ID="your-razorpay-key"
-export RAZORPAY_KEY_SECRET="your-razorpay-secret"
-export ANTHROPIC_API_KEY="your-claude-key"   # optional — fallback works without it
-
-# 4. Run
-uvicorn main:app --reload --port 8000
-
-# Open http://localhost:8000
+git clone https://github.com/TwinedM/Data-Driven-Profitability-and-Market-Expansion-Decision-System.git
+cd Data-Driven-Profitability-and-Market-Expansion-Decision-System
+git checkout feature/agentic-mongodb-pipeline
 ```
 
-**Docker:**
+### 2. Install Dependencies
+
 ```bash
-docker build -t revenue-intel .
-docker run -p 8000:8000 \
-  -e SECRET_KEY=xxx \
-  -e RAZORPAY_KEY_ID=xxx \
-  -e RAZORPAY_KEY_SECRET=xxx \
-  revenue-intel
+pip install -r app/requirements.txt
 ```
 
----
+### 3. Configure Environment Variables
 
-## Pricing
+Create a `.env` file in the `app/` directory:
 
-| Plan | Price | Access |
-|---|---|---|
-| Monthly | ₹2,000/month | 30 days |
-| 6 Months | ₹10,000 | 180 days · save ₹2,000 |
+```env
+MONGODB_URI=your_mongodb_atlas_uri
+MONGODB_DB=revenue_intel
+GEMINI_API_KEY=your_gemini_api_key
+SECRET_KEY=your_secret_key
+```
 
-Payments via Razorpay — UPI, Cards, NetBanking, GPay accepted.
+### 4. Run Application
 
----
+```bash
+uvicorn app.main:app --reload --port 8000
+```
 
-## Roadmap
+### 5. Open Browser
+http://localhost:8000
 
-- [x] CSV upload with fuzzy column detection
-- [x] KPI engine (revenue, fulfillment, trends, market quadrant)
-- [x] Rule-based insight engine
-- [x] Claude AI hybrid insight generation
-- [x] Interactive Plotly dashboard
-- [x] User auth (signup/login/logout)
-- [x] Razorpay subscription payments
-- [x] Docker + Render deployment
-- [ ] Redis caching layer (dashboard load time < 200ms)
-- [ ] PostgreSQL migration (persistent reports)
-- [ ] Background job queue (async Claude API calls)
-- [ ] Multi-platform support (Meesho, Shopify native connectors)
-- [ ] Month-over-month comparison (baseline vs current)
+Upload the sample CSV from the repository to run the full 4-agent pipeline.
 
 ---
 
-## Resume Bullet
+## Team
 
-> Built and deployed a full-stack AI SaaS product — **Revenue Intelligence** — using FastAPI, Claude API, Plotly, SQLAlchemy, and Docker; features fuzzy CSV ingestion, hybrid rule+AI insight generation, Razorpay subscription payments, and session-based auth; live at [data-driven-profitability-and-market.onrender.com](https://data-driven-profitability-and-market.onrender.com)
+| Name    | GitHub                                                | Role                                        |
+|---------|-------------------------------------------------------|---------------------------------------------|
+| Devansh | [@gitdev77](https://github.com/gitdev77)             | Backend, Agent Pipeline, Deployment         |
+| Peeuesh | [@TwinedM](https://github.com/TwinedM)               | Research Worker, MongoDB Integration        |
+| Medha   | [@medhasharma2805](https://github.com/medhasharma2805) | Analysis Worker, Report Worker, Docs      |
+---
+
+## License
+
+MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-## About
-
-Built by **Devansh** — B.Tech Engineering Physics, NIT Hamirpur  
-Targeting: D2C founders selling on Indian marketplaces who need analyst-grade insights without hiring an analyst.
-
----
-
-*© 2025 Revenue Intelligence · Built for Indian D2C founders*
+*Built for Indian D2C Founders · Google Cloud Rapid Agent Hackathon 2026*
