@@ -197,7 +197,12 @@ def get_dashboard(report_id: str):
         kpis = kpi_doc
         insight_list = insights_doc.get("insights", []) if insights_doc else []
 
-    gemini_report = report.get("report_text", "") if report else ""
+    gemini_report = ""
+    if report_id in REPORT_STORE:
+        rpt = db.reports.find_one({"job_id": report_id})
+        gemini_report = rpt.get("report_text", "") if rpt else ""
+    elif 'report' in dir() and report:
+        gemini_report = report.get("report_text", "")
     html = dash_module.render_dashboard(
         kpis=kpis,
         insights=insight_list,
