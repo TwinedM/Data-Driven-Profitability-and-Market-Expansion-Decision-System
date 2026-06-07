@@ -21,12 +21,11 @@ No data engineering. No waiting for an analyst. No generic advice.
 ---
 
 ## Screenshots
-<img width="1280" height="832" alt="dashboard" src="https://github.com/user-attachments/assets/88db6d10-39f1-4c36-9cf8-900a8a46972d" />
 
-<img width="1280" height="832" alt="landing" src="https://github.com/user-attachments/assets/2bd80bac-dea1-47ff-8564-662426a02762" />
-
-<img width="1280" height="832" alt="login" src="https://github.com/user-attachments/assets/a4149df0-fc63-41b7-a8c3-9c5e831452c4" />
-
+> Add 3 screenshots here after deployment:
+> 1. Landing page hero
+> 2. Dashboard with KPI cards + charts
+> 3. AI insights panel
 
 ---
 
