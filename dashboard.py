@@ -1,12 +1,9 @@
 """
 dashboard.py
-Amazon Sales — Live Browser Dashboard
-Flask + Plotly. Auto-refreshes every 60s.
-
-Run:  python dashboard.py amazon_sales.csv
-Open: http://localhost:5000
+Revenue Intelligence — Dashboard
 """
 
+import os
 import sys
 import threading
 import time
@@ -33,6 +30,13 @@ PLOTLY_LAYOUT = dict(
 )
 
 
+def _to_df(val):
+    """MongoDB returns lists; kpi_engine returns DataFrames. Handle both."""
+    if isinstance(val, pd.DataFrame):
+        return val
+    return pd.DataFrame(val) if val else pd.DataFrame()
+
+
 def refresh_data() -> None:
     try:
         kpis, _df = kpi_engine.run(CSV_PATH)
@@ -55,11 +59,11 @@ def _html(fig) -> str:
 
 
 def fig_trend(kpis: dict) -> str:
-    df = kpis["monthly_trend"].tail(12)
+    df = _to_df(kpis.get("monthly_trend")).tail(12)
+    if df.empty:
+        return ""
     fig = px.area(
-        df,
-        x="year_month",
-        y="revenue",
+        df, x="year_month", y="revenue",
         title="Monthly Revenue Trend",
         color_discrete_sequence=["#185FA5"],
     )
@@ -68,26 +72,47 @@ def fig_trend(kpis: dict) -> str:
     return _html(fig)
 
 
-def fig_category(kpis):
-    df = kpis["revenue_by_category"]
+def fig_state(kpis: dict) -> str:
+    df = _to_df(kpis.get("revenue_by_state")).head(15)
+    if df.empty:
+        return ""
+    fig = px.bar(
+        df, x="revenue", y="ship_state", orientation="h",
+        title="Revenue by State",
+        color_discrete_sequence=["#185FA5"],
+    )
+    fig.update_layout(**PLOTLY_LAYOUT)
+    return _html(fig)
+
+
+def fig_category(kpis: dict) -> str:
+    df = _to_df(kpis.get("revenue_by_category"))
+    if df.empty:
+        return ""
     fig = go.Figure(data=[
-        go.Bar(name="Revenue",    x=df["category"], y=df["revenue"],         marker_color="#185FA5"),
-        go.Bar(name="Avg Order ₹",x=df["category"], y=df["avg_order_value"], marker_color="#EF9F27"),
+        go.Bar(name="Revenue",     x=df["category"], y=df["revenue"],         marker_color="#185FA5"),
+        go.Bar(name="Avg Order ₹", x=df["category"], y=df["avg_order_value"], marker_color="#EF9F27"),
     ])
     fig.update_layout(barmode="group", title="Category Performance", **PLOTLY_LAYOUT)
     return _html(fig)
 
 
-def fig_quadrant(kpis):
-    df  = kpis["revenue_by_state"].head(25)
-    avg_ff  = kpis["fulfillment_rate"]
+def fig_quadrant(kpis: dict) -> str:
+    df = _to_df(kpis.get("revenue_by_state")).head(25).copy()
+    if df.empty:
+        return ""
+    avg_ff  = kpis.get("fulfillment_rate", 0)
     avg_rev = df["revenue"].mean()
+
     def quadrant(row):
-        if row["revenue"] > avg_rev and row["fulfillment_rate"] >= avg_ff: return "Star market"
-        if row["revenue"] > avg_rev and row["fulfillment_rate"] <  avg_ff: return "Revenue leakage"
-        if row["revenue"] <= avg_rev and row["fulfillment_rate"] >= avg_ff: return "Expansion target"
+        if row["revenue"] > avg_rev and row["fulfillment_rate"] >= avg_ff:
+            return "Star market"
+        if row["revenue"] > avg_rev and row["fulfillment_rate"] < avg_ff:
+            return "Revenue leakage"
+        if row["revenue"] <= avg_rev and row["fulfillment_rate"] >= avg_ff:
+            return "Expansion target"
         return "Low priority"
-    df = df.copy()
+
     df["quadrant"] = df.apply(quadrant, axis=1)
     color_map = {
         "Star market":      "#1D9E75",
@@ -95,25 +120,27 @@ def fig_quadrant(kpis):
         "Expansion target": "#EF9F27",
         "Low priority":     "#B4B2A9",
     }
-    fig = px.scatter(df, x="revenue", y="fulfillment_rate",
-                     text="ship_state", color="quadrant",
-                     color_discrete_map=color_map,
-                     title="Fulfillment Quality vs Revenue — Market Quadrant",
-                     labels={"revenue": "Revenue (₹)", "fulfillment_rate": "Fulfillment %"})
+    fig = px.scatter(
+        df, x="revenue", y="fulfillment_rate",
+        text="ship_state", color="quadrant",
+        color_discrete_map=color_map,
+        title="Fulfillment Quality vs Revenue — Market Quadrant",
+        labels={"revenue": "Revenue (₹)", "fulfillment_rate": "Fulfillment %"},
+    )
     fig.update_traces(
-    textposition="top center",
-    marker_size=10,
-    mode="markers",
-    hovertemplate="<b>%{text}</b><br>Revenue: ₹%{x:,.0f}<br>Fulfillment: %{y:.1f}%<extra></extra>"
-)
-    fig.add_vline(x=avg_rev,  line_dash="dash", line_color="#aaa")
-    fig.add_hline(y=avg_ff,   line_dash="dash", line_color="#aaa")
+        textposition="top center", marker_size=10, mode="markers",
+        hovertemplate="<b>%{text}</b><br>Revenue: ₹%{x:,.0f}<br>Fulfillment: %{y:.1f}%<extra></extra>",
+    )
+    fig.add_vline(x=avg_rev, line_dash="dash", line_color="#aaa")
+    fig.add_hline(y=avg_ff,  line_dash="dash", line_color="#aaa")
     fig.update_layout(**PLOTLY_LAYOUT)
     return _html(fig)
 
 
-def fig_fulfillment_method(kpis):
-    df = kpis["by_fulfillment_method"]
+def fig_fulfillment_method(kpis: dict) -> str:
+    df = _to_df(kpis.get("by_fulfillment_method"))
+    if df.empty:
+        return ""
     fig = go.Figure(data=[
         go.Bar(name="Revenue",          x=df["fulfillment"], y=df["revenue"],          marker_color="#185FA5"),
         go.Bar(name="Fulfillment Rate", x=df["fulfillment"], y=df["fulfillment_rate"], marker_color="#1D9E75", yaxis="y2"),
@@ -121,14 +148,14 @@ def fig_fulfillment_method(kpis):
     fig.update_layout(
         barmode="group", title="Amazon vs Merchant Fulfillment",
         yaxis2=dict(overlaying="y", side="right", showgrid=False),
-        **PLOTLY_LAYOUT
+        **PLOTLY_LAYOUT,
     )
     return _html(fig)
 
 
 TEMPLATE = """<!DOCTYPE html><html lang="en"><head>
 <meta charset="utf-8"><meta http-equiv="refresh" content="60">
-<title>Amazon Sales Dashboard</title>
+<title>Revenue Intelligence Dashboard</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f5f7}
@@ -152,8 +179,8 @@ TEMPLATE = """<!DOCTYPE html><html lang="en"><head>
 </style></head><body>
 
 <div class="hdr">
-  <h1>Amazon India Sales — Live Insight Dashboard</h1>
-  <span class="sub">Auto-refresh 60s · {{ refreshed_at }}</span>
+  <h1>Revenue Intelligence Dashboard</h1>
+  <span class="sub">{{ refreshed_at }}</span>
 </div>
 
 <div class="kpi-row">
@@ -171,6 +198,13 @@ TEMPLATE = """<!DOCTYPE html><html lang="en"><head>
     <div class="val" style="color:#E24B4A">{{ insight_count }}</div></div>
 </div>
 
+{% if gemini_report %}
+<div style="margin:0 24px 14px;background:#1a1d2e;border:1px solid #2a2d3e;border-radius:12px;padding:24px;">
+  <div style="font-size:13px;font-weight:700;color:#a78bfa;margin-bottom:12px;">✦ AI Founder Action Plan</div>
+  <div style="font-size:13px;color:#94a3b8;line-height:1.8;white-space:pre-wrap;">{{ gemini_report }}</div>
+</div>
+{% endif %}
+
 <div class="gf"><div class="card">{{ trend | safe }}</div></div>
 <div class="g2">
   <div class="card">{{ state | safe }}</div>
@@ -187,7 +221,7 @@ TEMPLATE = """<!DOCTYPE html><html lang="en"><head>
   </tr></thead>
   <tbody>
   {% for ins in insights %}
-  <tr style="background:{% if ins.impact=='High' %}#fff8f8{% elif ins.impact=='Medium' %}#fffdf5{% else %}#f5fff9{% endif %}">
+  <tr>
     <td><span class="badge {{ ins.impact|lower }}">{{ ins.impact }}</span></td>
     <td><strong>{{ ins.title }}</strong><br>
         <span style="color:#666;font-size:12px">{{ ins.detail }}</span></td>
@@ -201,8 +235,56 @@ TEMPLATE = """<!DOCTYPE html><html lang="en"><head>
 </table></div></div>
 
 <div style="padding:14px 24px;font-size:11px;color:#aaa">
-  Automated Insight System · Amazon India Sales · refreshes every 60s
+  Revenue Intelligence · Automated Analysis
 </div></body></html>"""
+
+
+def render_dashboard(kpis: dict, insights: list, gemini_report: str = "", filename: str = "", job_id: str = None) -> str:
+    """Called by FastAPI's /dashboard/{report_id} route."""
+    from jinja2 import Template
+
+    if not gemini_report and job_id:
+        try:
+            from database import get_database
+            db = get_database()
+            rpt = db.reports.find_one({"job_id": job_id})
+            if rpt:
+                gemini_report = rpt.get("report_text", "")
+        except Exception:
+            pass
+
+    # Insights may be dicts (from MongoDB) or dataclass objects
+    class _Ins:
+        def __init__(self, d):
+            self.title        = d.get("title", "")
+            self.detail       = d.get("detail", "")
+            self.impact       = d.get("impact", "Low")
+            self.action       = d.get("action", "")
+            self.category     = d.get("category", "")
+            self.metric_value = d.get("metric_value", "")
+
+    safe_insights = [
+        i if hasattr(i, "title") else _Ins(i)
+        for i in (insights or [])
+    ]
+
+    t = Template(TEMPLATE)
+    return t.render(
+        total_revenue    = kpis.get("total_revenue", 0),
+        total_orders     = kpis.get("total_orders", 0),
+        avg_order_value  = kpis.get("avg_order_value", 0),
+        fulfillment_rate = kpis.get("fulfillment_rate", 0),
+        b2b_share        = kpis.get("b2b_revenue_share", 0),
+        insights         = safe_insights,
+        insight_count    = len(safe_insights),
+        refreshed_at     = "just now",
+        gemini_report    = gemini_report,
+        trend            = fig_trend(kpis) if kpis.get("monthly_trend") else "",
+        state            = fig_state(kpis) if kpis.get("revenue_by_state") else "",
+        cat              = fig_category(kpis) if kpis.get("revenue_by_category") else "",
+        quadrant         = fig_quadrant(kpis) if kpis.get("revenue_by_state") else "",
+        ff_method        = fig_fulfillment_method(kpis) if kpis.get("by_fulfillment_method") else "",
+    )
 
 
 @app.route("/")
@@ -220,26 +302,7 @@ def index():
         insights         = _cache["insights"],
         insight_count    = len(_cache["insights"]),
         refreshed_at     = _cache.get("refreshed_at", "—"),
-        trend            = fig_trend(kpis),
-        state            = fig_state(kpis),
-        cat              = fig_category(kpis),
-        quadrant         = fig_quadrant(kpis),
-        ff_method        = fig_fulfillment_method(kpis),
-    )
-def render_dashboard(kpis: dict, insights: list) -> str:
-    """Renders the full HTML dashboard and returns it as a string."""
-    from jinja2 import Template
-
-    t = Template(TEMPLATE)
-    return t.render(
-        total_revenue    = kpis["total_revenue"],
-        total_orders     = kpis["total_orders"],
-  def render_dashboard(kpis: dict, insights: list) -> str:
-        fulfillment_rate = kpis["fulfillment_rate"],
-        b2b_share        = kpis["b2b_revenue_share"],
-        insights         = insights,
-        insight_count    = len(insights),
-        refreshed_at     = "on demand",
+        gemini_report    = "",
         trend            = fig_trend(kpis),
         state            = fig_state(kpis),
         cat              = fig_category(kpis),
@@ -249,36 +312,6 @@ def render_dashboard(kpis: dict, insights: list) -> str:
 
 
 if __name__ == "__main__":
-    CSV_PATH = sys.argv[1] if len(sys.argv) > 1 else "amazon_sales.csv"
-    print(f"[Dashboard] Loading {CSV_PATH}...")
-    refresh_data()
-    threading.Thread(target=auto_refresh, args=(60,), daemon=True).start()
-    """
-    Renders the full HTML dashboard and returns it as a string.
-    Used by FastAPI's /dashboard/{report_id} endpoint.
-    """
-    from jinja2 import Template
-    t = Template(TEMPLATE)
-    return t.render(
-        total_revenue    = kpis["total_revenue"],
-        total_orders     = kpis["total_orders"],
-        avg_order_value  = kpis["avg_order_value"],
-        fulfillment_rate = kpis["fulfillment_rate"],
-        b2b_share        = kpis["b2b_revenue_share"],
-        insights         = insights,
-        insight_count    = len(insights),
-        refreshed_at     = "on demand",
-        trend            = fig_trend(kpis),
-        state            = fig_state(kpis),
-        cat              = fig_category(kpis),
-        quadrant         = fig_quadrant(kpis),
-        ff_method        = fig_fulfillment_method(kpis),
-    )
-
-        # We use render_template_string-style manually here
-    
-if __name__ == "__main__":
-    global CSV_PATH
     CSV_PATH = sys.argv[1] if len(sys.argv) > 1 else "amazon_sales.csv"
     print(f"[Dashboard] Loading {CSV_PATH}...")
     refresh_data()
