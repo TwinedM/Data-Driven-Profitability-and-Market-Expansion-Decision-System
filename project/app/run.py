@@ -76,7 +76,7 @@ def watch_folder(csv_path, email=None):
 
 
 def launch_dashboard(csv_path, port=5000):
-    import dashboard as dash_module
+    import dash_render as dash_module
     dash_module.CSV_PATH = csv_path
     dash_module.refresh_data()
     import threading
