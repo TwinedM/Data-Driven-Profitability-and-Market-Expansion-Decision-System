@@ -530,6 +530,21 @@ async def verify_payment(request: Request):
     except Exception as e:
         return {"success": False, "detail": str(e)}
 
+
+import requests
+
+def keep_alive():
+    import time
+    while True:
+        time.sleep(600)  # ping every 10 minutes
+        try:
+            requests.get("https://data-driven-profitability-and-market.onrender.com/health", timeout=10)
+            print("[KeepAlive] Pinged successfully")
+        except Exception as e:
+            print(f"[KeepAlive] Ping failed: {e}")
+
+threading.Thread(target=keep_alive, daemon=True).start()
+
 # ── Dev server entry point ────────────────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn
