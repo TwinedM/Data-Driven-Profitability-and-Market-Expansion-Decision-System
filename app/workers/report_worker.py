@@ -154,51 +154,103 @@ def _build_prompt(
 {i}. Issue: {res.get('original_finding', '')}
    Research: {res.get('research', '')}
 """
-
     prompt = f"""
-You are a senior business consultant for Indian D2C brands selling on Amazon and Flipkart.
+You are a senior strategy consultant from BCG (Boston Consulting Group) specializing in Indian D2C e-commerce.
 
-Based on the data below, write a FOUNDER-READY ACTION PLAN report.
+Write a CONFIDENTIAL CLIENT REPORT for a D2C founder. Use precise consulting language, specific metrics, and McKinsey-style structure.
 
-═══════════════════════════════════════
-BUSINESS PERFORMANCE SUMMARY
-═══════════════════════════════════════
-Total Revenue    : ₹{total_revenue:,.0f}
-Total Orders     : {total_orders:,}
-Fulfillment Rate : {fulfillment_rate:.1f}%
+═══════════════════════════════════════════════════════
+BUSINESS PERFORMANCE DATA
+═══════════════════════════════════════════════════════
+Total GMV (Gross Merchandise Value) : ₹{total_revenue:,.0f}
+Total Orders (Unique SKUs Sold)     : {total_orders:,}
+Fulfillment Rate                    : {fulfillment_rate:.1f}%
 
-═══════════════════════════════════════
-MARKET OVERVIEW
-═══════════════════════════════════════
+═══════════════════════════════════════════════════════
+MARKET INTELLIGENCE
+═══════════════════════════════════════════════════════
 {market_overview}
 
-═══════════════════════════════════════
-BUSINESS PROBLEMS DETECTED
-═══════════════════════════════════════
-{insights_text if insights_text else "No major issues detected."}
+═══════════════════════════════════════════════════════
+DIAGNOSTIC FINDINGS
+═══════════════════════════════════════════════════════
+{insights_text if insights_text else "No critical issues detected."}
 
-═══════════════════════════════════════
-RESEARCH & COMPETITIVE INTELLIGENCE
-═══════════════════════════════════════
-{research_text if research_text else "No research data available."}
+═══════════════════════════════════════════════════════
+COMPETITIVE INTELLIGENCE
+═══════════════════════════════════════════════════════
+{research_text if research_text else "Competitive data unavailable."}
 
-═══════════════════════════════════════
-YOUR TASK
-═══════════════════════════════════════
-Write a structured founder report with these exact sections:
+═══════════════════════════════════════════════════════
+DELIVERABLE
+═══════════════════════════════════════════════════════
 
-1. EXECUTIVE SUMMARY (3-4 sentences on overall business health)
+Write a structured consulting report with EXACTLY these sections:
 
-2. TOP 3 CRITICAL ACTIONS (specific, numbered, actionable steps for next 30 days)
+---
 
-3. REVENUE OPPORTUNITIES (where to grow revenue in next 90 days)
+## EXECUTIVE BRIEFING
 
-4. RISKS TO WATCH (top 2-3 risks if no action taken)
+Write 3-4 sentences using consulting language. Reference GMV, fulfillment rate, MoM trends, and SKU concentration. End with the single biggest risk if no action is taken.
 
-5. 30-DAY PRIORITY CHECKLIST (5 bullet points, specific tasks)
+---
 
-Keep language direct and practical. Use Indian marketplace context.
-No generic advice — everything must be specific to this data.
+## DIAGNOSTIC SUMMARY
+
+| Issue | Severity | Business Impact | Urgency |
+|---|---|---|---|
+[Fill with actual findings from the data above. Use terms like "revenue leakage", "SKU concentration risk", "fulfillment gap", "CAC pressure". Mark severity as CRITICAL / HIGH / MEDIUM / LOW]
+
+---
+
+## STRATEGIC PRIORITIES — 30-DAY ACTION PLAN
+
+**Priority 1 — [Name the action] [CRITICAL]**
+- Hypothesis: [Why this is happening in Indian D2C context]
+- Action: [Specific step with timeline]
+- Expected Impact: [Quantified outcome — use % or ₹ estimates]
+- Owner: Founder / Marketing / Operations
+
+**Priority 2 — [Name the action] [HIGH]**
+[Same structure]
+
+**Priority 3 — [Name the action] [HIGH]**
+[Same structure]
+
+---
+
+## REVENUE OPPORTUNITY SIZING — 90-DAY HORIZON
+
+| Opportunity | Estimated GMV Uplift | Effort | Timeline |
+|---|---|---|---|
+[List 3 specific opportunities with ₹ estimates based on the actual revenue data above]
+
+---
+
+## RISK REGISTER
+
+| Risk | Probability | Revenue Impact | Mitigation |
+|---|---|---|---|
+[List top 3 risks with specific impact estimates]
+
+---
+
+## 30-DAY EXECUTION CHECKLIST
+
+- [ ] Week 1: [Specific task]
+- [ ] Week 1: [Specific task]
+- [ ] Week 2: [Specific task]
+- [ ] Week 2: [Specific task]
+- [ ] Week 3-4: [Specific task]
+
+---
+
+IMPORTANT RULES:
+- Use Indian marketplace terminology — Amazon.in, Flipkart, Meesho, GMV, AOV, CAC, LTV, ROAS, SKU
+- Every recommendation must reference the actual data provided
+- Use ₹ for all monetary values
+- No generic advice — everything must be specific to this founder's numbers
+- Write like a BCG consultant presenting to a Series A D2C founder
 """
     return prompt
 
