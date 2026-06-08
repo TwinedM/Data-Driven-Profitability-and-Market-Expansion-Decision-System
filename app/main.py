@@ -35,7 +35,7 @@ from models import (
     create_report, get_report_by_id
 )
 from fastapi.templating import Jinja2Templates
-import dashboard as dash_module
+import dash_render as dash_module
 import threading
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
 
