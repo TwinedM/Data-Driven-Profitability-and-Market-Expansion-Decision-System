@@ -67,11 +67,15 @@ def run(job_id: str) -> dict:
             raise ValueError(f"Missing required columns: {missing}")
 
         # Apply column mapping
+        import gc
         df_mapped = apply_mapping(df_raw.copy(), mapping)
+        del df_raw
+        gc.collect()
 
         # ── Step 4: Clean data + compute KPIs ─────────────────
-        # Uses your existing kpi_engine functions — zero changes
         df_clean = load_data_from_df(df_mapped)
+        del df_mapped
+        gc.collect()
         kpis = compute_kpis(df_clean)
 
         print(f"[Ingestion] KPIs computed — "
@@ -105,6 +109,8 @@ def run(job_id: str) -> dict:
 
         # ── Step 6: Save KPI snapshot to MongoDB ──────────────
         kpi_doc = _serialize_kpis(kpis, job_id)
+        del orders_data
+        gc.collect()
         db.kpis.delete_one({"job_id": job_id})
         db.kpis.insert_one(kpi_doc)
         print(f"[Ingestion] KPIs saved to MongoDB")
