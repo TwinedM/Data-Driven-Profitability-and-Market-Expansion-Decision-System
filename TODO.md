@@ -1,6 +1,5 @@
-- [x] Inspect app/templates/index.html for CSS/HTML structure errors (deck section accidentally inside <style>)
-- [ ] Fix index.html by moving/rewriting the deck section markup so it is outside the <style> block
-- [ ] Ensure HTML structure is valid: only CSS inside <style>, single closing </style>, correct <head>/<body>
-- [ ] Save file and verify no CSS/HTML syntax errors remain
-
+- [ ] Inspect top-level dashboard.py corruption sources (done)
+- [ ] Rearrange duplicated/misaligned blocks in Data-Driven-Profitability-and-Market-Expansion-Decision-System/dashboard.py to restore single coherent definitions (render_dashboard + __main__ + missing fig_state) (pending)
+- [ ] Ensure file is syntactically valid (no red-line errors) (pending)
+- [ ] Run `python -m py_compile` on the file to verify (pending)
 
