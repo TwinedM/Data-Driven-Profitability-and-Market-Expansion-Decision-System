@@ -16,18 +16,12 @@ from workers.research_worker import run as research_run
 from workers.report_worker import run as report_run
 
 
-def run_pipeline(csv_path: str, filename: str, user_id: str = "anonymous") -> dict:
-    """
-    Main pipeline — chains all 4 agents sequentially.
-    Called by main.py's /upload-mapped route.
-    
-    Returns:
-        dict with job_id, status, and report summary
-    """
+def run_pipeline(csv_path: str, filename: str, user_id: str = "anonymous", job_id: str = None) -> dict:
     db = get_database()
     
     # Generate unique job ID
-    job_id = str(uuid.uuid4())[:8]
+    if not job_id:
+        job_id = str(uuid.uuid4())[:8]
     
     print(f"\n{'='*50}")
     print(f"[Pipeline] Starting job {job_id}")
@@ -56,12 +50,14 @@ def run_pipeline(csv_path: str, filename: str, user_id: str = "anonymous") -> di
     # ── Agent 1: Ingestion ─────────────────────────────────────
     print(f"[Pipeline] → Running Agent 1: Ingestion")
     result1 = ingestion_run(job_id)
+    db.processing_jobs.update_one({"job_id": job_id}, {"$set": {"status": "ingesting", "updated_at": datetime.utcnow()}})
     if result1["status"] == "failed":
         return _pipeline_failed(db, job_id, "ingestion", result1["error"])
     print(f"[Pipeline] ✅ Agent 1 complete\n")
 
     # ── Agent 2: Analysis ──────────────────────────────────────
     print(f"[Pipeline] → Running Agent 2: Analysis")
+    db.processing_jobs.update_one({"job_id": job_id}, {"$set": {"status": "researching", "updated_at": datetime.utcnow()}})
     result2 = analysis_run(job_id)
     if result2.get("status") == "failed":
         return _pipeline_failed(db, job_id, "analysis", result2.get("error"))
@@ -69,6 +65,7 @@ def run_pipeline(csv_path: str, filename: str, user_id: str = "anonymous") -> di
 
     # ── Agent 3: Research ──────────────────────────────────────
     print(f"[Pipeline] → Running Agent 3: Research")
+    db.processing_jobs.update_one({"job_id": job_id}, {"$set": {"status": "reporting", "updated_at": datetime.utcnow()}})
     result3 = research_run(job_id)
     if result3["status"] == "failed":
         return _pipeline_failed(db, job_id, "research", result3["error"])
@@ -76,6 +73,7 @@ def run_pipeline(csv_path: str, filename: str, user_id: str = "anonymous") -> di
 
     # ── Agent 4: Report ────────────────────────────────────────
     print(f"[Pipeline] → Running Agent 4: Report")
+    db.processing_jobs.update_one({"job_id": job_id}, {"$set": {"status": "completed", "updated_at": datetime.utcnow()}})
     result4 = report_run(job_id)
     if result4["status"] == "failed":
         return _pipeline_failed(db, job_id, "report", result4["error"])

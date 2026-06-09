@@ -49,6 +49,11 @@ PLOTLY_LAYOUT = dict(
 )
 
 
+def _to_df(val):
+    if isinstance(val, pd.DataFrame):
+        return val
+    return pd.DataFrame(val) if val else pd.DataFrame()
+
 def refresh_data():
     try:
         kpis, df = kpi_engine.run(CSV_PATH)
@@ -71,7 +76,8 @@ def _html(fig):
 
 
 def fig_trend(kpis):
-    df = kpis["monthly_trend"].tail(12)
+    df = _to_df(kpis.get("monthly_trend")).tail(12)
+    if df.empty: return ""
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=df["year_month"], y=df["revenue"],
@@ -88,7 +94,8 @@ def fig_trend(kpis):
 
 
 def fig_state(kpis):
-    df = kpis["revenue_by_state"].head(15)
+    df = _to_df(kpis.get("revenue_by_state")).head(15)
+    if df.empty: return ""
     fig = px.bar(
         df, x="revenue", y="ship_state", orientation="h",
         color="fulfillment_rate",
@@ -102,7 +109,8 @@ def fig_state(kpis):
 
 
 def fig_category(kpis):
-    df = kpis["revenue_by_category"]
+    df = _to_df(kpis.get("revenue_by_category"))
+    if df.empty: return ""
     fig = go.Figure(data=[
         go.Bar(name="Revenue",     x=df["category"], y=df["revenue"],         marker_color="#60a5fa"),
         go.Bar(name="Avg Order ₹", x=df["category"], y=df["avg_order_value"], marker_color="#a78bfa"),
@@ -112,7 +120,8 @@ def fig_category(kpis):
 
 
 def fig_quadrant(kpis):
-    df      = kpis["revenue_by_state"].head(25).copy()
+    df = _to_df(kpis.get("revenue_by_state")).head(25).copy()
+    if df.empty: return ""
     avg_ff  = kpis["fulfillment_rate"]
     avg_rev = df["revenue"].mean()
 
@@ -147,7 +156,8 @@ def fig_quadrant(kpis):
 
 
 def fig_fulfillment_method(kpis):
-    df = kpis["by_fulfillment_method"]
+    df = _to_df(kpis.get("by_fulfillment_method"))
+    if df.empty: return ""
     fig = go.Figure(data=[
         go.Bar(name="Revenue",          x=df["fulfillment"], y=df["revenue"],          marker_color="#60a5fa"),
         go.Bar(name="Fulfillment Rate", x=df["fulfillment"], y=df["fulfillment_rate"], marker_color="#34d399", yaxis="y2"),
@@ -636,3 +646,4 @@ if __name__ == "__main__":
     print("[Dashboard] → http://localhost:5000")
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
+

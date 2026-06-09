@@ -356,35 +356,54 @@
     }
   }
 
-  async function pollStatus(jobId) {
-    const stages = [
-      { key: 'ingesting',   label: 'Agent 1: Ingesting & cleaning your sales data' },
-      { key: 'analyzing',   label: 'Agent 2: Detecting revenue problems & KPIs' },
-      { key: 'researching', label: 'Agent 3: Researching competitor context' },
-      { key: 'reporting',   label: 'Agent 4: Writing your founder action plan' },
-      { key: 'completed',   label: 'Complete! Loading your dashboard...' },
-    ];
-    const statusOrder = ['uploaded', 'ingesting', 'analyzing', 'researching', 'reporting', 'completed'];
+async function pollStatus(jobId) {
+  const stages = [
+    { key: 'ingesting',   label: 'Agent 1: Ingesting & cleaning your sales data' },
+    { key: 'analyzing',   label: 'Agent 2: Detecting revenue problems & KPIs' },
+    { key: 'researching', label: 'Agent 3: Researching competitor context' },
+    { key: 'reporting',   label: 'Agent 4: Writing your founder action plan' },
+    { key: 'completed',   label: 'Complete! Loading your dashboard...' },
+  ];
+  const statusToStage = {
+    'uploaded':    0,
+    'ingesting':   0,
+    'analyzing':   1,
+    'researching': 2,
+    'reporting':   3,
+    'completed':   4,
+  };
 
-    // Since pipeline runs synchronously, simulate progress while waiting
-    // Then redirect when done (report_id is returned after completion)
-    let step = 0;
-    const interval = setInterval(() => {
-      if (step < stages.length - 1) {
-        updateStages(step, stages);
-        step++;
+  updateStages(0, stages);
+
+  return new Promise((resolve) => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('/status/' + jobId);
+        const data = await res.json();
+
+        const stageIdx = statusToStage[data.status] ?? 0;
+        updateStages(stageIdx, stages);
+
+        if (data.status === 'completed') {
+          clearInterval(interval);
+          await sleep(1200);
+          window.location.href = '/dashboard/' + jobId;
+          resolve();
+        } else if (data.status === 'failed') {
+          clearInterval(interval);
+          showProgressError('Pipeline failed: ' + (data.error || 'Unknown error'));
+          document.getElementById('run-btn').disabled = false;
+          resolve();
+        }
+      } catch (err) {
+        clearInterval(interval);
+        showProgressError('Network error while checking status: ' + err.message);
+        document.getElementById('run-btn').disabled = false;
+        resolve();
       }
-    }, 45000); // advance every 45 seconds
-
-    updateStages(0, stages);
-
-    // The upload-mapped call already completed the pipeline
-    // Just show completion and redirect
-    clearInterval(interval);
-    updateStages(stages.length - 1, stages);
-    await sleep(1500);
-    window.location.href = '/dashboard/' + jobId;
-  }
+    }, 4000); // poll every 4 seconds
+  });
+}
 
   function updateStages(currentIdx, stages) {
     stages.forEach((stage, i) => {
