@@ -69,7 +69,10 @@ def run(job_id: str) -> dict:
         # Apply column mapping
         import gc
         df_mapped = apply_mapping(df_raw.copy(), mapping)
-        del df_raw
+        try:
+            del df_raw
+        except NameError:
+            pass
         gc.collect()
 
         # ── Step 4: Clean data + compute KPIs ─────────────────
