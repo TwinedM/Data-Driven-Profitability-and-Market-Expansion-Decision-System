@@ -23,7 +23,7 @@ from database import get_database
 # Configure Gemini AFTER loading env
 from google import genai
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-client = genai.Client(vertexai=True, project=os.environ.get("GOOGLE_CLOUD_PROJECT"), location=os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1"))
+client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 
 
