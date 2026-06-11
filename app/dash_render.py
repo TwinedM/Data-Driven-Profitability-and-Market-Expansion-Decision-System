@@ -520,10 +520,11 @@ TEMPLATE = """<!DOCTYPE html>
       {% for ins in insights %}
 
       {# Choose card border color by impact #}
-      {% if ins.impact == 'High' %}
+      {% set sev = ins.severity if ins.severity else ins.impact if ins.impact else 'low' %}
+      {% if sev in ['high', 'critical', 'High', 'Critical'] %}
         {% set border_color = '#3b1f2b' %}
         {% set badge_class  = 'imp-high' %}
-      {% elif ins.impact == 'Medium' %}
+      {% elif sev in ['medium', 'Medium'] %}
         {% set border_color = '#3b2e1a' %}
         {% set badge_class  = 'imp-med' %}
       {% else %}
@@ -534,12 +535,12 @@ TEMPLATE = """<!DOCTYPE html>
       <div class="insight-card" style="border-color: {{ border_color }}">
         <div class="insight-top">
           <div class="insight-badges">
-            <span class="impact-badge {{ badge_class }}">{{ ins.impact }}</span>
-            <span class="cat-badge">{{ ins.category }}</span>
+            <span class="impact-badge {{ badge_class }}">{{ sev | upper }}</span>
+            <span class="cat-badge">{{ ins.type if ins.type else ins.category if ins.category else 'Insight' }}</span>
           </div>
         </div>
-        <div class="insight-title">{{ ins.title }}</div>
-        <div class="insight-detail">{{ ins.detail }}</div>
+        <div class="insight-title">{{ ins.title if ins.title else ins.message }}</div>
+        <div class="insight-detail">{{ ins.detail if ins.detail else ins.message }}</div>
         <div class="insight-metric">{{ ins.metric_value }}</div>
         <div class="insight-action">
           <span class="action-label">[Action]</span> {{ ins.action }}
